@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/video-player.css">
+    <title> Video Playlist </title>
+</head>
+<body>
+    <div class="container">
+        <video id="videoplaylist" preload="auto" tabindex="0" controls="" >
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4">
+        </video>
+        
+        <ul id="playlist">
+            <li class="active">
+                <a href="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+                    1. BigBuckBunny
+                </a>
+            </li>
+
+            <li>
+                <a href="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4">
+                    2. ElephantsDream
+                </a>
+            </li>
+
+            <li>
+                <a href="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4">
+                    3. ForBiggerBlazes
+                </a>
+            </li>
+        
+        </ul>
+    </div>
+    <script src="./video-list.js"></script>
+    <script src="/video-player.js"></script>
+</body>
+</html>
