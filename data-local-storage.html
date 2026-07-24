@@ -94,7 +94,14 @@
       <div class="row pt-3">
         <div class="col-md-12 col-sm-12 col-12 p-2">
           <h1> বদলী র‌্যাব সদস্যদের নামের তালিকা </h1>
-          <table id="tblData" class="table table-bordered table-hover table-striped">
+
+          <form action="#">
+            <div class="form-input">
+              <input type="text" required="" placeholder="What you looking for?" id="myInput" onkeyup="filterTable()">
+            </div>
+          </form>
+
+          <table id="tblData" class="table table-bordered table-hover table-striped table-searchable table-responsive">
             <thead>
               <tr>
                 <th> ক্রমিক </th>
@@ -120,7 +127,6 @@
   
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://masumbillah6778.github.io/js/data-local-storage.js"></script>
-  <script src="https://masumbillah6778.github.io/js/table-search-filter-and-highlight.js"></script>
 </body>
 
 </html>
