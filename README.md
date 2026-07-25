@@ -11,3 +11,7 @@ https://masumbillah6778.github.io/html/table-sum-rows-columns-add-remove-total.h
 Link:
 https://masumbillah6778.github.io/html/table-search-filter-and-highlight.html
 
+Link:
+https://masumbillah6778.github.io/html/data-local-storage.html
+
+
