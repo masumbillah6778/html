@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App - Home & Chat Interface</title>
+
+  <!-- ✂️ Cropper.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  
+  <!-- 📷 QR Code Scanner Library (Html5-Qrcode) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    /* ডার্ক ও লাইট মোড কালার ভ্যারিয়েবল */
+    :root {
+      --bg-color: #e9ecef;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --label-color: #555555;
+      --input-bg: #ffffff;
+      --input-border: #ccc;
+      --input-text: #333333;
+      --sidebar-bg: #ffffff;
+      --sidebar-header-border: #ddd;
+      --home-body-bg: #f8f9fa;
+      --friend-item-bg: #ffffff;
+      --friend-name: #333333;
+      --friend-status: #666666;
+      --chat-box-bg: #f8f9fa;
+      --other-msg-bg: #e9ecef;
+      --other-msg-text: #333333;
+      --chat-input-area-bg: #ffffff;
+      --chat-input-border: #ddd;
+    }
+
+    body.dark-mode {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --label-color: #b0b0b0;
+      --input-bg: #2d2d2d;
+      --input-border: #444;
+      --input-text: #e0e0e0;
+      --sidebar-bg: #1e1e1e;
+      --sidebar-header-border: #333;
+      --home-body-bg: #121212;
+      --friend-item-bg: #2d2d2d;
+      --friend-name: #e0e0e0;
+      --friend-status: #aaaaaa;
+      --chat-box-bg: #121212;
+      --other-msg-bg: #2d2d2d;
+      --other-msg-text: #e0e0e0;
+      --chat-input-area-bg: #1e1e1e;
+      --chat-input-border: #444;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      max-width: 450px;
+      margin: 10px auto;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      position: relative;
+      transition: background 0.3s;
+    }
+    h2 {
+      margin-top: 0;
+      color: var(--text-color);
+      font-size: 20px;
+      text-align: center;
+    }
+    label {
+      font-weight: bold;
+      font-size: 14px;
+      color: var(--label-color);
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+    input { 
+      border: 1px solid var(--input-border); 
+      outline: none; 
+      background-color: var(--input-bg);
+      color: var(--input-text);
+    }
+    input:focus { border-color: #007bff; }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* ১. OTP সেকশন */
+    #otp-section {
+      display: none;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 2px dashed #007bff;
+    }
+
+    /* ২. প্রোফাইল সেকশন */
+    #profile-section { display: none; text-align: center; }
+    
+    .profile-pic-container {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      margin: 15px auto;
+    }
+    .profile-pic-container img {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #007bff;
+    }
+    .upload-badge {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: #007bff;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      cursor: pointer;
+      border: 2px solid #fff;
+    }
+
+    /* ✂️ মডাল পপআপ */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      padding: 15px;
+    }
+    .modal-content {
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 350px;
+      text-align: center;
+    }
+    .img-container {
+      max-height: 300px;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    .crop-btns { display: flex; gap: 10px; }
+
+    /* ৩. হোম / ফ্রেন্ডস লিস্ট পেজ */
+    #home-section { display: none; padding: 0; overflow: hidden; }
+    
+    .home-header {
+      background-color: #007bff;
+      color: white;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+    }
+    .home-user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .home-header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid white;
+      object-fit: cover;
+    }
+    .home-header-info { text-align: left; }
+    .home-header-info .user-title { font-weight: bold; font-size: 16px; }
+
+    .home-body {
+      padding: 15px;
+      background-color: var(--home-body-bg);
+      min-height: 380px;
+      max-height: 450px;
+      overflow-y: auto;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      transition: background-color 0.3s;
+    }
+
+    .friend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--friend-item-bg);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: background 0.2s;
+    }
+    .friend-item:hover { opacity: 0.9; }
+    
+    .friend-avatar-container {
+      position: relative;
+      width: 45px;
+      height: 45px;
+    }
+    .friend-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--input-border);
+    }
+    .status-dot {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+    .status-dot.online { background-color: #28a745; }
+    .status-dot.offline { background-color: #dc3545; }
+
+    .friend-info { flex: 1; }
+    .friend-name { font-weight: bold; font-size: 15px; color: var(--friend-name); }
+    .friend-status { font-size: 12px; color: var(--friend-status); margin-top: 2px; }
+
+    /* ৪. চ্যাট রুম সেকশন */
+    #chat-section { display: none; padding: 0; overflow: hidden; }
+    
+    .chat-header {
+      background-color: #007bff;
+      color: white;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+    }
+    .header-user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-header img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid white;
+      object-fit: cover;
+    }
+    .header-info { text-align: left; }
+    .header-info .user-title { font-weight: bold; font-size: 16px; }
+
+    .back-to-home-btn {
+      background: transparent;
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      width: auto;
+      padding: 0;
+      margin-top: 0;
+      font-weight: bold;
+    }
+
+    /* 📞 কল বাটন ও মেনু গ্রুপ */
+    .header-actions {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .call-btn {
+      background-color: #28a745;
+      color: white;
+      width: auto;
+      padding: 8px 10px;
+      margin-top: 0;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .video-call-btn { background-color: #17a2b8; }
+    .menu-toggle-btn {
+      background: transparent;
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      width: auto;
+      padding: 5px;
+      margin-top: 0;
+    }
+
+    /* 📁 সাইডবার মেনু */
+    .sidebar {
+      position: absolute;
+      top: 0;
+      right: -250px;
+      width: 230px;
+      height: 100%;
+      background: var(--sidebar-bg);
+      box-shadow: -4px 0 12px rgba(0,0,0,0.15);
+      z-index: 500;
+      transition: right 0.3s ease, background 0.3s;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+    }
+    .sidebar.active { right: 0; }
+    .sidebar-header {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: var(--text-color);
+      border-bottom: 1px solid var(--sidebar-header-border);
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .close-sidebar { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-color); width: auto; margin-top: 0; padding: 0; }
+    .sidebar-menu-item {
+      padding: 10px 12px;
+      background: var(--input-bg);
+      border-radius: 6px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--text-color);
+      text-align: left;
+      width: 100%;
+      margin-top: 0;
+      border: 1px solid var(--input-border);
+    }
+    .sidebar-menu-item:hover { opacity: 0.8; }
+
+    /* 🚫 ব্লক লিস্ট মডাল */
+    #block-list-modal .modal-content {
+      text-align: left;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .blocked-user-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--sidebar-header-border);
+    }
+    .unblock-btn {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      width: auto;
+      margin-top: 0;
+    }
+
+    /* 📷 QR স্ক্যানার মডাল স্টাইল */
+    #qr-scanner-modal .modal-content {
+      max-width: 380px;
+      text-align: center;
+    }
+    #reader {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .qr-result-box {
+      margin-top: 10px;
+      padding: 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      text-align: left;
+      word-break: break-all;
+    }
+
+    .chat-box {
+      height: 350px;
+      overflow-y: auto;
+      padding: 15px;
+      background-color: var(--chat-box-bg);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: background-color 0.3s;
+    }
+
+    .msg-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      max-width: 85%;
+      position: relative;
+    }
+    .msg-wrapper.my-wrapper { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-wrapper.other-wrapper { align-self: flex-start; }
+    .msg-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+    .message {
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 15px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      cursor: pointer;
+      user-select: none;
+    }
+    .my-message { background-color: #007bff; color: white; border-bottom-right-radius: 2px; }
+    .other-message { background-color: var(--other-msg-bg); color: var(--other-msg-text); border-bottom-left-radius: 2px; }
+
+    .delete-menu {
+      display: none;
+      position: absolute;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 100;
+      padding: 4px;
+      top: -35px;
+    }
+    .my-wrapper .delete-menu { right: 0; }
+    .other-wrapper .delete-menu { left: 0; }
+    .delete-btn {
+      background: #dc3545; color: white; border: none; padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; width: auto; margin-top: 0;
+    }
+
+    .call-log-message {
+      background-color: var(--other-msg-bg); color: var(--text-color); border: 1px solid var(--input-border); font-weight: bold; border-radius: 8px; padding: 6px 12px; font-size: 13px;
+    }
+    .call-log-message.missed { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+    .sender-name { font-size: 11px; font-weight: bold; margin-bottom: 3px; opacity: 0.85; }
+    .chat-img { max-width: 100%; border-radius: 8px; margin-top: 5px; display: block; }
+
+    .chat-input-area {
+      display: flex;
+      padding: 10px;
+      background-color: var(--chat-input-area-bg);
+      border-top: 1px solid var(--chat-input-border);
+      gap: 6px;
+      align-items: center;
+      transition: background-color 0.3s;
+    }
+    .chat-input-area input[type="text"] { margin-top: 0; flex: 1; }
+    .chat-input-area button { margin-top: 0; width: auto; padding: 10px 14px; }
+    .img-btn { background-color: #6c757d; font-size: 18px; padding: 8px 12px !important; }
+
+    .mic-btn { background-color: #dc3545 !important; font-size: 18px; padding: 8px 12px !important; }
+    .recording-active { animation: pulse 1s infinite; background-color: #ff0000 !important; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    .audio-msg { max-width: 220px; margin-top: 5px; }
+
+    /* 📞 কল স্ক্রিন UI */
+    #call-modal .modal-content {
+      background-color: #111827; color: white; border-radius: 16px; padding: 20px; max-width: 400px; position: relative; overflow: hidden;
+    }
+    .call-avatar { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #007bff; margin: 10px auto; object-fit: cover; }
+    
+    #video-container {
+      display: none; position: relative; width: 100%; height: 320px; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 15px;
+    }
+    #remote-video { width: 100%; height: 100%; object-fit: cover; }
+    #local-video {
+      position: absolute; bottom: 10px; right: 10px; width: 90px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid white; background: #333;
+    }
+
+    .call-actions { display: flex; justify-content: center; gap: 15px; margin-top: 15px; }
+    .btn-accept { background-color: #28a745; width: auto; padding: 10px 20px; border-radius: 50px; }
+    .btn-reject { background-color: #dc3545; width: auto; padding: 10px 20px; border-radius: 50px; }
+    .call-control-btn { background-color: #374151; width: auto; padding: 10px 15px; border-radius: 50px; font-size: 16px; }
+  </style>
+
+  <!-- 🔥 Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <!-- ✂️ Cropper.js JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+</head>
+<body>
+
+  <!-- ১. সাইন-ইন ও OTP কার্ড -->
+  <div class="card" id="login-card">
+    <h2>চ্যাটিং অ্যাপে লগইন করুন</h2>
+
+    <div id="phone-section">
+      <label style="display:block; text-align:left;">মোবাইল নম্বর:</label>
+      <input type="tel" id="phone-number" value="+8801711111111" placeholder="+88017...">
+      <button id="send-btn" type="button">Send OTP</button>
+    </div>
+
+    <div id="otp-section">
+      <label style="display:block; text-align:left;">৬ ডিজিটের OTP কোড:</label>
+      <input type="text" id="otp-code" placeholder="যেমন: 123456">
+      <button id="verify-btn" type="button" style="background-color: #28a745;">Verify OTP</button>
+    </div>
+  </div>
+
+  <!-- ২. প্রোফাইল সেটিং কার্ড -->
+  <div class="card" id="profile-section">
+    <h2 id="profile-title">প্রোফাইল সেটিং</h2>
+    <p style="color: var(--label-color); font-size: 14px; margin-bottom: 5px;">ছবি রিসাইজ করে সেট করুন</p>
+    
+    <div class="profile-pic-container">
+      <img id="profile-preview" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
+      <label for="profile-input" class="upload-badge" title="ছবি নির্বাচন করুন">📷</label>
+      <input type="file" id="profile-input" accept="image/*" style="display: none;">
+    </div>
+
+    <div style="text-align: left;">
+      <label for="user-name">আপনার পূর্ণ নাম:</label>
+      <input type="text" id="user-name" placeholder="যেমন: আব্দুর রহমান">
+      <button id="save-profile-btn" type="button" style="background-color: #17a2b8;">প্রোফাইল সেভ করুন</button>
+    </div>
+  </div>
+
+  <!-- ✂️ ছবি ক্রপ ও রিসাইজ করার মডাল -->
+  <div id="crop-modal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-top:0;">ছবিটি রিসাইজ করুন</h3>
+      <div class="img-container">
+        <img id="crop-image" src="" style="max-width: 100%;">
+      </div>
+      <div class="crop-btns">
+        <button id="crop-cancel-btn" type="button" style="background-color: #dc3545;">বাতিল</button>
+        <button id="crop-done-btn" type="button" style="background-color: #28a745;">ঠিক আছে (Crop)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🚫 ব্লক লিস্ট মডাল -->
+  <div id="block-list-modal" class="modal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;">ব্লক লিস্ট</h3>
+        <button id="close-block-modal" type="button" style="background:none; border:none; font-size:18px; cursor:pointer; width:auto; padding:0; color:var(--text-color);">✕</button>
+      </div>
+      <div id="blocked-users-container">
+        <p style="color: var(--label-color); font-size: 14px;">কোনো ইউজার ব্লক করা নেই।</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📷 QR স্ক্যানার মডাল -->
+  <div id="qr-scanner-modal" class="modal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin:0;">QR কোড স্ক্যানার</h3>
+        <button id="close-qr-modal" type="button" style="background:none; border:none; font-size:18px; cursor:pointer; width:auto; padding:0; color:var(--text-color);">✕</button>
+      </div>
+      <div id="reader"></div>
+      <div class="qr-result-box">
+        <label style="font-size: 12px;">ধরন:</label>
+        <div id="qr-type-text" style="font-weight: bold; color: #007bff; margin-bottom: 5px;">স্ক্যান করার জন্য অপেক্ষা করা হচ্ছে...</div>
+        <label style="font-size: 12px;">গন্তব্য লিংক/তথ্য:</label>
+        <div id="qr-url-text" style="font-size: 14px; font-weight: bold;">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📞 কল স্ক্রিন মডাল -->
+  <div id="call-modal" class="modal">
+    <div class="modal-content" style="background-color: #111827; color: white;">
+      <h3 id="call-status-title">কলিং...</h3>
+      
+      <div id="video-container">
+        <video id="remote-video" autoplay playsinline></video>
+        <video id="local-video" autoplay playsinline muted></video>
+      </div>
+
+      <div id="audio-ui-container">
+        <img id="call-user-avatar" class="call-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="User">
+        <div id="call-user-name" style="font-weight: bold; font-size: 18px; margin-top: 5px;">ইউজার</div>
+      </div>
+
+      <p id="call-timer" style="color: #28a745; font-size: 15px; font-weight: bold; margin-top: 8px;">সংযোগ স্থাপন করা হচ্ছে...</p>
+
+      <div class="call-actions">
+        <button id="accept-call-btn" class="btn-accept" style="display:none;">📞 রিসিভ</button>
+        <button id="toggle-video-btn" class="call-control-btn" style="display:none;" title="ক্যামেরা অন/অফ">📷</button>
+        <button id="toggle-mic-btn" class="call-control-btn" style="display:none;" title="মিউট/আনমিউট">🎙️</button>
+        <button id="end-call-btn" class="btn-reject">🔴 কেটে দিন</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="remote-audio" autoplay></audio>
+
+  <!-- ৩. হোম পেজ (বন্ধুদের তালিকা সহ) -->
+  <div class="card" id="home-section">
+    <div class="home-header">
+      <div class="home-user-info">
+        <img id="home-user-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="User">
+        <div class="home-header-info">
+          <div class="user-title" id="home-welcome-name">ইউজার</div>
+          <small style="opacity: 0.8;">অনলাইন</small>
+        </div>
+      </div>
+      <button id="home-menu-toggle-btn" class="menu-toggle-btn" type="button" title="মেনু">⋮</button>
+    </div>
+
+    <!-- হোম পেজের সাইডবার মেনু -->
+    <div id="home-sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span>মেনু অপশন</span>
+        <button id="close-home-sidebar-btn" class="close-sidebar" type="button">✕</button>
+      </div>
+      <button id="menu-profile-btn" class="sidebar-menu-item" type="button" style="color: #007bff; border-color: #b8daff; background: #e7f3ff;">👤 প্রোফাইল এডিট</button>
+      <button id="menu-qr-btn" class="sidebar-menu-item" type="button" style="color: #28a745; border-color: #c3e6cb;">📷 QR স্ক্যানার</button>
+      <button id="menu-block-list-btn" class="sidebar-menu-item" type="button" style="color: #6c757d; border-color: #ccc;">🚫 ব্লক লিস্ট</button>
+      <!-- ডে/নাইট মোড টগল বাটন -->
+      <button id="menu-theme-btn" class="sidebar-menu-item" type="button" style="color: #ffc107; border-color: #ffeeba;">🌙 নাইট মোড</button>
+    </div>
+
+    <div class="home-body" id="friend-list-container">
+      <p style="color: var(--label-color); font-size: 14px; text-align: center; margin-top: 20px;">কোনো বন্ধু পাওয়া যায়নি।</p>
+    </div>
+  </div>
+
+  <!-- ৪. চ্যাট রুম ইন্টারফেস -->
+  <div class="card" id="chat-section">
+    <div class="chat-header">
+      <div class="header-user-info">
+        <button id="back-to-home-btn" class="back-to-home-btn" type="button" title="হোমে ফিরে যান">←</button>
+        <img id="header-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="User">
+        <div class="header-info">
+          <div class="user-title" id="chat-with-name">চ্যাট</div>
+          <small id="chat-status-text" style="opacity: 0.8;">অনলাইন</small>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="audio-call-btn" class="call-btn" type="button" title="অডিও কল">📞</button>
+        <button id="video-call-btn" class="call-btn video-call-btn" type="button" title="ভিডিও কল">📹</button>
+        <button id="chat-menu-toggle-btn" class="menu-toggle-btn" type="button" title="মেনু">⋮</button>
+      </div>
+    </div>
+
+    <!-- চ্যাট পেজের সাইডবার মেনু -->
+    <div id="chat-sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span>মেনু অপশন</span>
+        <button id="close-chat-sidebar-btn" class="close-sidebar" type="button">✕</button>
+      </div>
+      <button id="menu-block-toggle-btn" class="sidebar-menu-item" type="button">ইউজার ব্লক করুন</button>
+    </div>
+
+    <div class="chat-box" id="chat-box"></div>
+
+    <div id="image-preview-container" style="display: none; padding: 10px; background: var(--card-bg); border-top: 1px solid var(--chat-input-border); text-align: center; position: relative;">
+      <img id="image-preview" src="" style="max-height: 100px; border-radius: 8px;">
+      <button id="cancel-img-btn" type="button" style="position: absolute; top: 5px; right: 10px; width: auto; padding: 2px 8px; background: #dc3545; font-size: 12px;">✕ বাতিল</button>
+    </div>
+
+    <div class="chat-input-area">
+      <input type="file" id="chat-file-input" accept="image/*" style="display: none;">
+      <button id="chat-img-btn" class="img-btn" type="button" title="ছবি পাঠান">📷</button>
+      <button id="mic-btn" class="mic-btn" type="button" title="ভয়েস রেকর্ড করুন">🎤</button>
+      <input type="text" id="message-input" placeholder="মেসেজ লিখুন...">
+      <button id="send-msg-btn" type="button" style="background-color: #28a745;">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCvEQuSAAEV2GhcAve_qUXfsjCWlj-eDik",
+      authDomain: "chatting-app-ac4bd.firebaseapp.com",
+      databaseURL: "https://chatting-app-ac4bd-default-rtdb.firebaseio.com",
+      projectId: "chatting-app-ac4bd",
+      storageBucket: "chatting-app-ac4bd.firebasestorage.app",
+      messagingSenderId: "429927317809",
+      appId: "1:429927317809:web:ddc2593242b7c94d3b3010"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const loginCard = document.getElementById('login-card');
+    const sendBtn = document.getElementById('send-btn');
+    const otpSection = document.getElementById('otp-section');
+    const verifyBtn = document.getElementById('verify-btn');
+
+    const profileSection = document.getElementById('profile-section');
+    const profileTitle = document.getElementById('profile-title');
+    const profileInput = document.getElementById('profile-input');
+    const profilePreview = document.getElementById('profile-preview');
+    const userNameInput = document.getElementById('user-name');
+    const saveProfileBtn = document.getElementById('save-profile-btn');
+
+    const cropModal = document.getElementById('crop-modal');
+    const cropImage = document.getElementById('crop-image');
+    const cropDoneBtn = document.getElementById('crop-done-btn');
+    const cropCancelBtn = document.getElementById('crop-cancel-btn');
+    let cropper = null;
+
+    const homeSection = document.getElementById('home-section');
+    const homeUserAvatar = document.getElementById('home-user-avatar');
+    const homeWelcomeName = document.getElementById('home-welcome-name');
+    const friendListContainer = document.getElementById('friend-list-container');
+    const homeMenuToggleBtn = document.getElementById('home-menu-toggle-btn');
+    const homeSidebar = document.getElementById('home-sidebar');
+    const closeHomeSidebarBtn = document.getElementById('close-home-sidebar-btn');
+    const menuProfileBtn = document.getElementById('menu-profile-btn');
+    const menuThemeBtn = document.getElementById('menu-theme-btn');
+    const menuQrBtn = document.getElementById('menu-qr-btn');
+
+    const qrScannerModal = document.getElementById('qr-scanner-modal');
+    const closeQrModal = document.getElementById('close-qr-modal');
+    const qrTypeText = document.getElementById('qr-type-text');
+    const qrUrlText = document.getElementById('qr-url-text');
+    let html5QrCode = null;
+
+    const chatSection = document.getElementById('chat-section');
+    const backToHomeBtn = document.getElementById('back-to-home-btn');
+    const headerAvatar = document.getElementById('header-avatar');
+    const chatWithName = document.getElementById('chat-with-name');
+    const chatStatusText = document.getElementById('chat-status-text');
+    const chatBox = document.getElementById('chat-box');
+    const messageInput = document.getElementById('message-input');
+    const sendMsgBtn = document.getElementById('send-msg-btn');
+    const chatMenuToggleBtn = document.getElementById('chat-menu-toggle-btn');
+    const chatSidebar = document.getElementById('chat-sidebar');
+    const closeChatSidebarBtn = document.getElementById('close-chat-sidebar-btn');
+
+    const chatFileInput = document.getElementById('chat-file-input');
+    const chatImgBtn = document.getElementById('chat-img-btn');
+    const imgPreviewContainer = document.getElementById('image-preview-container');
+    const imgPreview = document.getElementById('image-preview');
+    const cancelImgBtn = document.getElementById('cancel-img-btn');
+
+    const micBtn = document.getElementById('mic-btn');
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const audioCallBtn = document.getElementById('audio-call-btn');
+    const videoCallBtn = document.getElementById('video-call-btn');
+    const callModal = document.getElementById('call-modal');
+    const callStatusTitle = document.getElementById('call-status-title');
+    const callUserAvatar = document.getElementById('call-user-avatar');
+    const callUserName = document.getElementById('call-user-name');
+    const callTimer = document.getElementById('call-timer');
+    const acceptCallBtn = document.getElementById('accept-call-btn');
+    const endCallBtn = document.getElementById('end-call-btn');
+    const remoteAudio = document.getElementById('remote-audio');
+
+    const videoContainer = document.getElementById('video-container');
+    const remoteVideo = document.getElementById('remote-video');
+    const localVideo = document.getElementById('local-video');
+    const audioUiContainer = document.getElementById('audio-ui-container');
+    const toggleVideoBtn = document.getElementById('toggle-video-btn');
+    const toggleMicBtn = document.getElementById('toggle-mic-btn');
+
+    const menuBlockListBtn = document.getElementById('menu-block-list-btn');
+    const blockListModal = document.getElementById('block-list-modal');
+    const closeBlockModal = document.getElementById('close-block-modal');
+    const blockedUsersContainer = document.getElementById('blocked-users-container');
+    const menuBlockToggleBtn = document.getElementById('menu-block-toggle-btn');
+
+    let currentUserName = "";
+    let oldUserName = ""; 
+    let currentUserAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    let activeChatUser = "";
+    let selectedChatImageData = null;
+
+    let peerConnection;
+    let localStream;
+    let callRef;
+    let isCaller = false; 
+    let activeCallId = null; 
+    let isCallLogged = false; 
+    let isCallConnected = false; 
+    let isVideoCall = false;
+
+    let blockedUsersMap = {};
+    let isBlockedByOther = false;
+    let allUsersData = {};
+
+    const rtcConfig = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
+
+    let audioCtx;
+    let ringInterval;
+    let timerInterval;
+    let callTimeoutTimer;
+    let callSeconds = 0;
+
+    // ডে/নাইট মোড হ্যান্ডলার (লোকাল স্টোরেজ সাপোর্ট সহ)
+    const savedTheme = localStorage.getItem('chat_app_theme');
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-mode');
+      menuThemeBtn.innerText = '☀️ ডে মোড';
+    }
+
+    menuThemeBtn.addEventListener('click', function() {
+      document.body.classList.toggle('dark-mode');
+      if (document.body.classList.contains('dark-mode')) {
+        localStorage.setItem('chat_app_theme', 'dark');
+        menuThemeBtn.innerText = '☀️ ডে মোড';
+      } else {
+        localStorage.setItem('chat_app_theme', 'light');
+        menuThemeBtn.innerText = '🌙 নাইট মোড';
+      }
+    });
+
+    // 📷 QR কোড স্ক্যানার লজিক
+    menuQrBtn.addEventListener('click', function() {
+      homeSidebar.classList.remove('active');
+      qrScannerModal.style.display = 'block';
+      qrTypeText.innerText = "স্ক্যান করার জন্য ক্যামেরা পজিশন করুন...";
+      qrUrlText.innerText = "-";
+
+      setTimeout(() => {
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode("reader");
+        }
+        html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            // স্ক্যান সফল হলে
+            analyzeQrContent(decodedText);
+            stopScanner();
+          },
+          (errorMessage) => {
+            // স্ক্যানিং ত্রুটি বা প্রোগ্রেস (ইগনোর করা যায়)
+          }
+        ).catch(err => {
+          qrTypeText.innerText = "ক্যামেরা পারমিশন পাওয়া যায়নি!";
+        });
+      }, 300);
+    });
+
+    closeQrModal.addEventListener('click', function() {
+      stopScanner();
+      qrScannerModal.style.display = 'none';
+    });
+
+    function stopScanner() {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(err => {});
+      }
+    }
+
+    function analyzeQrContent(text) {
+      let typeDesc = "সাধারণ টেক্সট বা তথ্য";
+      let formattedUrl = text;
+      let clickableHref = "#";
+
+      const lowerText = text.toLowerCase();
+
+      if (lowerText.startsWith('http://') || lowerText.startsWith('https://')) {
+        if (lowerText.includes('t.me/') || lowerText.includes('telegram')) {
+          typeDesc = "টেলিগ্রাম গ্রুপ বা চ্যানেল লিংক";
+        } else if (lowerText.includes('chat.whatsapp.com') || lowerText.includes('whatsapp')) {
+          typeDesc = "হোয়াটসঅ্যাপ গ্রুপ বা চ্যাট লিংক";
+        } else if (lowerText.includes('facebook.com') || lowerText.includes('fb.me')) {
+          typeDesc = "ফেসবুক পেজ, গ্রুপ বা প্রোফাইল লিংক";
+        } else {
+          typeDesc = "ওয়েবসাইট লিংক";
+        }
+        clickableHref = text;
+      } else if (lowerText.startsWith('tel:')) {
+        typeDesc = "ফোন নম্বর (কল করার জন্য)";
+        clickableHref = text;
+      } else if (lowerText.startsWith('mailto:')) {
+        typeDesc = "ইমেইল অ্যাড্রেস";
+        clickableHref = text;
+      } else if (/^\+?[0-9]{10,15}$/.test(text)) {
+        typeDesc = "মোবাইল নম্বর";
+        clickableHref = "tel:" + text;
+        formattedUrl = "tel:" + text;
+      } else {
+        typeDesc = "সাধারণ টেক্সট";
+        clickableHref = "#";
+      }
+
+      qrTypeText.innerText = typeDesc;
+      if (clickableHref !== "#") {
+        qrUrlText.innerHTML = `<a href="${clickableHref}" target="_blank" style="color: #007bff; text-decoration: underline;">${text}</a>`;
+      } else {
+        qrUrlText.innerText = text;
+      }
+    }
+
+    function getCurrentClockTime() {
+      const now = new Date();
+      let hours = now.getHours();
+      let minutes = now.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      minutes = minutes < 10 ? '0' + minutes : minutes;
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
+    function startOutgoingRingTone() {
+      stopRingTone();
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playTone = () => {
+          if (!audioCtx) return;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 1);
+        };
+        playTone();
+        ringInterval = setInterval(playTone, 3000);
+      } catch (e) {}
+    }
+
+    function startIncomingRingTone() {
+      stopRingTone();
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playMessengerTune = () => {
+          if (!audioCtx) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, index) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.12);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime + index * 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.12 + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + index * 0.12);
+            osc.stop(audioCtx.currentTime + index * 0.12 + 0.3);
+          });
+        };
+        playMessengerTune();
+        ringInterval = setInterval(playMessengerTune, 1500);
+      } catch (e) {}
+    }
+
+    function stopRingTone() {
+      if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    }
+
+    function getFormattedTime(totalSecs) {
+      const hrs = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+      const pad = (n) => (n < 10 ? '0' + n : n);
+      return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+    }
+
+    function startCallTimer() {
+      stopCallTimer();
+      clearTimeout(callTimeoutTimer);
+      callSeconds = 0;
+      timerInterval = setInterval(() => {
+        callSeconds++;
+        callTimer.innerText = getFormattedTime(callSeconds);
+      }, 1000);
+    }
+
+    function stopCallTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    }
+
+    sendBtn.addEventListener('click', function() {
+      const phoneNumber = document.getElementById('phone-number').value.trim();
+      if (!phoneNumber) { alert("মোবাইল নম্বরটি লিখুন!"); return; }
+      alert("OTP পাঠানো হয়েছে! (টেস্ট কোড: 123456)");
+      otpSection.style.display = "block";
+    });
+
+    verifyBtn.addEventListener('click', function() {
+      const code = document.getElementById('otp-code').value.trim();
+      if (code === "123456") {
+        loginCard.style.display = "none";
+        profileTitle.innerText = "প্রোফাইল সেটিং";
+        profileSection.style.display = "block";
+      } else {
+        alert("ভুল OTP! কোড হিসেবে 123456 ব্যবহার করুন।");
+      }
+    });
+
+    profileInput.addEventListener('change', function() {
+      const file = profileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        cropImage.src = e.target.result;
+        cropModal.style.display = "block";
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropImage, { aspectRatio: 1, viewMode: 1, autoCropArea: 0.8 });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    cropDoneBtn.addEventListener('click', function() {
+      if (!cropper) return;
+      const canvas = cropper.getCroppedCanvas({ width: 200, height: 200 });
+      currentUserAvatar = canvas.toDataURL('image/jpeg', 0.8);
+      profilePreview.src = currentUserAvatar;
+      cropModal.style.display = "none";
+      cropper.destroy();
+      cropper = null;
+    });
+
+    cropCancelBtn.addEventListener('click', function() {
+      cropModal.style.display = "none";
+      if (cropper) cropper.destroy();
+      cropper = null;
+      profileInput.value = "";
+    });
+
+    saveProfileBtn.addEventListener('click', function() {
+      const name = userNameInput.value.trim();
+      if (!name) { alert("দয়া করে নাম লিখুন!"); return; }
+
+      if (oldUserName && oldUserName !== name) {
+        db.ref("users/" + oldUserName).remove();
+      }
+
+      currentUserName = name;
+      oldUserName = name;
+
+      profileSection.style.display = "none";
+      homeSection.style.display = "block";
+      homeWelcomeName.innerText = currentUserName;
+      homeUserAvatar.src = currentUserAvatar;
+
+      const userRef = db.ref("users/" + currentUserName);
+      userRef.set({
+        name: currentUserName,
+        avatar: currentUserAvatar,
+        status: "online"
+      });
+
+      userRef.child("status").onDisconnect().set("offline");
+
+      window.addEventListener("beforeunload", () => {
+        userRef.child("status").set("offline");
+      });
+
+      listenForIncomingCalls();
+      listenForBlocks();
+      listenForFriends();
+    });
+
+    homeMenuToggleBtn.addEventListener('click', () => homeSidebar.classList.add('active'));
+    closeHomeSidebarBtn.addEventListener('click', () => homeSidebar.classList.remove('active'));
+
+    chatMenuToggleBtn.addEventListener('click', () => chatSidebar.classList.add('active'));
+    closeChatSidebarBtn.addEventListener('click', () => chatSidebar.classList.remove('active'));
+
+    menuProfileBtn.addEventListener('click', function() {
+      homeSidebar.classList.remove('active');
+      homeSection.style.display = 'none';
+      chatSection.style.display = 'none';
+
+      profileTitle.innerText = "প্রোফাইল এডিট করুন";
+      profilePreview.src = currentUserAvatar;
+      userNameInput.value = currentUserName;
+      profileSection.style.display = 'block';
+    });
+
+    menuBlockListBtn.addEventListener('click', function() {
+      homeSidebar.classList.remove('active');
+      blockListModal.style.display = 'block';
+    });
+    closeBlockModal.addEventListener('click', () => blockListModal.style.display = 'none');
+
+    backToHomeBtn.addEventListener('click', function() {
+      chatSection.style.display = 'none';
+      homeSection.style.display = 'block';
+      activeChatUser = "";
+    });
+
+    function listenForBlocks() {
+      db.ref("blocks").on("value", snapshot => {
+        const blocks = snapshot.val();
+        blockedUsersMap = {};
+        isBlockedByOther = false;
+        let blockedListHtml = "";
+
+        if (blocks) {
+          Object.keys(blocks).forEach(key => {
+            const data = blocks[key];
+            if (data.blockedBy === currentUserName) {
+              blockedUsersMap[data.blockedUser] = true;
+              blockedListHtml += `
+                <div class="blocked-user-item">
+                  <span>${data.blockedUser}</span>
+                  <button class="unblock-btn" onclick="unblockUser('${data.blockedUser}')">আনব্লক</button>
+                </div>
+              `;
+            }
+            if (data.blockedUser === currentUserName && data.blockedBy === activeChatUser) {
+              isBlockedByOther = true;
+            }
+          });
+        }
+
+        if (blockedListHtml === "") {
+          blockedUsersContainer.innerHTML = `<p style="color: var(--label-color); font-size: 14px;">কোনো ইউজার ব্লক করা নেই।</p>`;
+        } else {
+          blockedUsersContainer.innerHTML = blockedListHtml;
+        }
+
+        updateBlockMenuText();
+      });
+    }
+
+    window.unblockUser = function(targetUser) {
+      db.ref("blocks/" + currentUserName + "_" + targetUser).remove();
+      alert(targetUser + " কে আনব্লক করা হয়েছে।");
+    };
+
+    menuBlockToggleBtn.addEventListener('click', function() {
+      chatSidebar.classList.remove('active');
+      if (!activeChatUser) return;
+
+      const blockRef = db.ref("blocks/" + currentUserName + "_" + activeChatUser);
+      blockRef.once("value", snap => {
+        if (snap.exists()) {
+          blockRef.remove();
+          alert(activeChatUser + " কে আনব্লক করা হয়েছে।");
+        } else {
+          blockRef.set({ blockedBy: currentUserName, blockedUser: activeChatUser, timestamp: Date.now() });
+          alert(activeChatUser + " কে ব্লক করা হয়েছে।");
+        }
+      });
+    });
+
+    function updateBlockMenuText() {
+      if (!activeChatUser) return;
+      if (blockedUsersMap[activeChatUser]) {
+        menuBlockToggleBtn.innerText = activeChatUser + " কে আনব্লক করুন";
+        menuBlockToggleBtn.style.color = "#28a745";
+        menuBlockToggleBtn.style.borderColor = "#28a745";
+      } else {
+        menuBlockToggleBtn.innerText = activeChatUser + " কে ব্লক করুন";
+        menuBlockToggleBtn.style.color = "#dc3545";
+        menuBlockToggleBtn.style.borderColor = "#f5c6cb";
+      }
+    }
+
+    function listenForFriends() {
+      db.ref("users").on("value", snapshot => {
+        const users = snapshot.val();
+        allUsersData = users || {};
+        let friendsListHtml = "";
+        let count = 0;
+
+        if (users) {
+          Object.keys(users).forEach(username => {
+            const userData = users[username];
+            if (username !== currentUserName) {
+              count++;
+              const isOnline = (userData.status === "online");
+              const statusClass = isOnline ? "online" : "offline";
+              const statusText = isOnline ? "অনলাইন" : "অফলাইন";
+
+              friendsListHtml += `
+                <div class="friend-item" onclick="openChatRoom('${userData.name}', '${userData.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}')">
+                  <div class="friend-avatar-container">
+                    <img src="${userData.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="friend-avatar" alt="Avatar">
+                    <div class="status-dot ${statusClass}"></div>
+                  </div>
+                  <div class="friend-info">
+                    <div class="friend-name">${userData.name}</div>
+                    <div class="friend-status" style="color: ${isOnline ? '#28a745' : '#dc3545'};">${statusText}</div>
+                  </div>
+                </div>
+              `;
+            }
+          });
+        }
+
+        if (count === 0) {
+          friendListContainer.innerHTML = `<p style="color: var(--label-color); font-size: 14px; text-align: center; margin-top: 20px;">কোনো বন্ধু পাওয়া যায়নি।</p>`;
+        } else {
+          friendListContainer.innerHTML = friendsListHtml;
+        }
+
+        if (activeChatUser && allUsersData[activeChatUser]) {
+          const friendData = allUsersData[activeChatUser];
+          const isOnline = (friendData.status === "online");
+          chatStatusText.innerText = isOnline ? "অনলাইন" : "অফলাইন";
+        }
+      });
+    }
+
+    window.openChatRoom = function(friendName, friendAvatar) {
+      activeChatUser = friendName;
+      homeSection.style.display = 'none';
+      chatSection.style.display = 'block';
+      chatWithName.innerText = friendName;
+      headerAvatar.src = friendAvatar;
+
+      if (allUsersData[activeChatUser]) {
+        const friendData = allUsersData[activeChatUser];
+        const isOnline = (friendData.status === "online");
+        chatStatusText.innerText = isOnline ? "অনলাইন" : "অফলাইন";
+      }
+
+      listenForMessages();
+      updateBlockMenuText();
+    };
+
+    chatImgBtn.addEventListener('click', () => {
+      if (isBlockedByOther) { alert("আপনি এই ইউজারের দ্বারা ব্লকড হয়েছেন, তাই মেসেজ পাঠাতে পারবেন না!"); return; }
+      chatFileInput.click();
+    });
+
+    chatFileInput.addEventListener('change', function() {
+      const file = chatFileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        selectedChatImageData = e.target.result;
+        imgPreview.src = selectedChatImageData;
+        imgPreviewContainer.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    cancelImgBtn.addEventListener('click', function() {
+      selectedChatImageData = null;
+      chatFileInput.value = "";
+      imgPreviewContainer.style.display = "none";
+    });
+
+    micBtn.addEventListener('click', async function() {
+      if (isBlockedByOther) { alert("আপনি এই ইউজারের দ্বারা ব্লকড হয়েছেন, তাই ভয়েস মেসেজ পাঠাতে পারবেন না!"); return; }
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              db.ref("messages").push({
+                sender: currentUserName, receiver: activeChatUser, avatar: currentUserAvatar, type: "audio", text: e.target.result, timestamp: Date.now()
+              });
+            };
+            reader.readAsDataURL(audioBlob);
+            stream.getTracks().forEach(track => track.stop());
+          };
+          mediaRecorder.start();
+          isRecording = true;
+          micBtn.classList.add('recording-active');
+          micBtn.innerText = "⏹️";
+        } catch (err) { alert("মাইক্রোফোনের পারমিশন পাওয়া যায়নি!"); }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        micBtn.classList.remove('recording-active');
+        micBtn.innerText = "🎤";
+      }
+    });
+
+    function sendMessage() {
+      if (isBlockedByOther) {
+        alert("আপনি এই ইউজারের দ্বারা ব্লকড হয়েছেন, তাই মেসেজ পাঠাতে পারবেন না!");
+        return;
+      }
+      const text = messageInput.value.trim();
+      if (selectedChatImageData) {
+        db.ref("messages").push({
+          sender: currentUserName, receiver: activeChatUser, avatar: currentUserAvatar, type: "image", text: selectedChatImageData, timestamp: Date.now()
+        });
+        selectedChatImageData = null;
+        chatFileInput.value = "";
+        imgPreviewContainer.style.display = "none";
+      } else if (text) {
+        db.ref("messages").push({
+          sender: currentUserName, receiver: activeChatUser, avatar: currentUserAvatar, type: "text", text: text, timestamp: Date.now()
+        });
+        messageInput.value = "";
+      }
+    }
+
+    sendMsgBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    function listenForMessages() {
+      db.ref("messages").on("value", function(snapshot) {
+        chatBox.innerHTML = "";
+        const allMessages = snapshot.val();
+        if (!allMessages) return;
+
+        Object.keys(allMessages).forEach(msgKey => {
+          const data = allMessages[msgKey];
+          
+          const isRelevant = (data.sender === currentUserName && data.receiver === activeChatUser) ||
+                             (data.sender === activeChatUser && data.receiver === currentUserName);
+          
+          if (!isRelevant && data.type !== "call_log") return;
+
+          let isMe = (data.sender === currentUserName);
+
+          const wrapper = document.createElement('div');
+          wrapper.classList.add('msg-wrapper', isMe ? 'my-wrapper' : 'other-wrapper');
+
+          const userImg = document.createElement('img');
+          userImg.classList.add('msg-avatar');
+          userImg.src = data.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+          const msgDiv = document.createElement('div');
+          if (data.type === "call_log") {
+            msgDiv.classList.add('message', 'call-log-message');
+            if (data.isMissed) msgDiv.classList.add('missed');
+            msgDiv.innerText = data.text;
+          } else {
+            msgDiv.classList.add('message', isMe ? 'my-message' : 'other-message');
+            let contentHtml = "";
+            if (!isMe) contentHtml += `<div class="sender-name">${data.sender}</div>`;
+            if (data.type === "image") contentHtml += `<img src="${data.text}" class="chat-img" alt="image">`;
+            else if (data.type === "audio") contentHtml += `<audio controls class="audio-msg" src="${data.text}"></audio>`;
+            else contentHtml += data.text;
+            msgDiv.innerHTML = contentHtml;
+          }
+
+          const deleteMenu = document.createElement('div');
+          deleteMenu.classList.add('delete-menu');
+          deleteMenu.innerHTML = `<button class="delete-btn" type="button">ডিলিট</button>`;
+          wrapper.appendChild(deleteMenu);
+
+          const startPress = (e) => {
+            document.querySelectorAll('.delete-menu').forEach(m => m.style.display = 'none');
+            deleteMenu.style.display = 'block';
+            e.stopPropagation();
+          };
+
+          msgDiv.addEventListener('mousedown', startPress);
+          msgDiv.addEventListener('touchstart', startPress);
+
+          deleteMenu.querySelector('.delete-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            db.ref("messages/" + msgKey).remove();
+          });
+
+          wrapper.appendChild(userImg);
+          wrapper.appendChild(msgDiv);
+          chatBox.appendChild(wrapper);
+        });
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    }
+
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.delete-menu').forEach(m => m.style.display = 'none');
+    });
+
+    audioCallBtn.addEventListener('click', () => {
+      if (isBlockedByOther) { alert("আপনি এই ইউজারের দ্বারা ব্লকড হয়েছেন, তাই কল করতে পারবেন না!"); return; }
+      initiateCall(false);
+    });
+    videoCallBtn.addEventListener('click', () => {
+      if (isBlockedByOther) { alert("আপনি এই ইউজারের দ্বারা ব্লকড হয়েছেন, তাই কল করতে পারবেন না!"); return; }
+      initiateCall(true);
+    });
+
+    async function initiateCall(videoEnabled) {
+      isVideoCall = videoEnabled;
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+      } catch (e) {
+        alert("ক্যামেরা বা মাইক্রোফোনের পারমিশন পাওয়া যায়নি!");
+        return;
+      }
+
+      isCaller = true;
+      isCallLogged = false;
+      isCallConnected = false;
+      callModal.style.display = 'block';
+      callStatusTitle.innerText = isVideoCall ? "আউটগোয়িং ভিডিও কল..." : "আউটগোয়িং অডিও কল...";
+      callUserName.innerText = activeChatUser;
+      callTimer.innerText = "কল দেওয়া হচ্ছে...";
+      acceptCallBtn.style.display = 'none';
+
+      if (isVideoCall) {
+        videoContainer.style.display = 'block';
+        audioUiContainer.style.display = 'none';
+        localVideo.srcObject = localStream;
+        toggleVideoBtn.style.display = 'inline-block';
+        toggleMicBtn.style.display = 'inline-block';
+      } else {
+        videoContainer.style.display = 'none';
+        audioUiContainer.style.display = 'block';
+        toggleVideoBtn.style.display = 'none';
+        toggleMicBtn.style.display = 'none';
+      }
+
+      startOutgoingRingTone();
+
+      callRef = db.ref("calls").push();
+      activeCallId = callRef.key;
+
+      clearTimeout(callTimeoutTimer);
+      callTimeoutTimer = setTimeout(() => {
+        if (callRef) callRef.update({ status: "ended" });
+        closeCall();
+      }, 30000);
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = event => {
+        if (isVideoCall) remoteVideo.srcObject = event.streams[0];
+        else remoteAudio.srcObject = event.streams[0];
+      };
+
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) callRef.child('callerCandidates').push(event.candidate.toJSON());
+      };
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      await callRef.set({
+        callerName: currentUserName,
+        receiverName: activeChatUser,
+        callerAvatar: currentUserAvatar,
+        offer: { type: offer.type, sdp: offer.sdp },
+        status: "calling",
+        isVideo: isVideoCall
+      });
+
+      callRef.on('value', snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        if (data.answer && !peerConnection.currentRemoteDescription) {
+          stopRingTone();
+          clearTimeout(callTimeoutTimer);
+          peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+          isCallConnected = true;
+          callStatusTitle.innerText = "সংযুক্ত হয়েছে (Connected)";
+          startCallTimer();
+        }
+
+        if (data.status === "ended") closeCall();
+      });
+
+      callRef.child('calleeCandidates').on('child_added', snapshot => {
+        peerConnection.addIceCandidate(new RTCIceCandidate(snapshot.val()));
+      });
+    }
+
+    function listenForIncomingCalls() {
+      db.ref("calls").limitToLast(1).on('child_added', snapshot => {
+        const callData = snapshot.val();
+        const callKey = snapshot.key;
+
+        if (callData && callData.receiverName === currentUserName && callData.status === "calling") {
+          if (blockedUsersMap[callData.callerName]) {
+            db.ref("calls/" + callKey).update({ status: "ended" });
+            return;
+          }
+
+          isCaller = false;
+          isCallLogged = false;
+          isCallConnected = false;
+          activeCallId = callKey;
+          callRef = db.ref("calls/" + callKey);
+          isVideoCall = callData.isVideo || false;
+
+          activeChatUser = callData.callerName;
+
+          callModal.style.display = 'block';
+          callStatusTitle.innerText = isVideoCall ? "ইনকামিং ভিডিও কল" : "ইনকামিং অডিও কল";
+          callUserName.innerText = callData.callerName;
+          callUserAvatar.src = callData.callerAvatar || currentUserAvatar;
+          callTimer.innerText = "ইনকামিং কল আসছে...";
+          acceptCallBtn.style.display = 'inline-block';
+
+          if (isVideoCall) {
+            videoContainer.style.display = 'block';
+            audioUiContainer.style.display = 'none';
+          } else {
+            videoContainer.style.display = 'none';
+            audioUiContainer.style.display = 'block';
+          }
+
+          startIncomingRingTone();
+
+          clearTimeout(callTimeoutTimer);
+          callTimeoutTimer = setTimeout(() => { closeCall(); }, 30000);
+
+          callRef.on('value', snap => {
+            const data = snap.val();
+            if (!data || data.status === "ended") closeCall();
+            else if (data.status === "connected") {
+              stopRingTone();
+              clearTimeout(callTimeoutTimer);
+              isCallConnected = true;
+              callStatusTitle.innerText = "সংযুক্ত হয়েছে (Connected)";
+              if (!timerInterval) startCallTimer();
+            }
+          });
+
+          acceptCallBtn.onclick = async function() {
+            try {
+              localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
+            } catch (e) {
+              alert("ক্যামেরা বা মাইক্রোফোনের পারমিশন পাওয়া যায়নি!");
+              return;
+            }
+
+            stopRingTone();
+            clearTimeout(callTimeoutTimer);
+            acceptCallBtn.style.display = 'none';
+            isCallConnected = true;
+            callStatusTitle.innerText = "সংযুক্ত হয়েছে (Connected)";
+            startCallTimer();
+
+            if (isVideoCall) {
+              localVideo.srcObject = localStream;
+              toggleVideoBtn.style.display = 'inline-block';
+              toggleMicBtn.style.display = 'inline-block';
+            }
+
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = event => {
+              if (isVideoCall) remoteVideo.srcObject = event.streams[0];
+              else remoteAudio.srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = event => {
+              if (event.candidate) callRef.child('calleeCandidates').push(event.candidate.toJSON());
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            await callRef.update({
+              answer: { type: answer.type, sdp: answer.sdp },
+              status: "connected"
+            });
+
+            callRef.child('callerCandidates').on('child_added', snap => {
+              peerConnection.addIceCandidate(new RTCIceCandidate(snap.val()));
+            });
+
+            homeSection.style.display = 'none';
+            chatSection.style.display = 'block';
+            chatWithName.innerText = callData.callerName;
+            headerAvatar.src = callData.callerAvatar || currentUserAvatar;
+            if (allUsersData[activeChatUser]) {
+              const friendData = allUsersData[activeChatUser];
+              const isOnline = (friendData.status === "online");
+              chatStatusText.innerText = isOnline ? "অনলাইন" : "অফলাইন";
+            }
+            listenForMessages();
+          };
+        }
+      });
+    }
+
+    toggleVideoBtn.addEventListener('click', function() {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        toggleVideoBtn.style.backgroundColor = videoTrack.enabled ? "#374151" : "#dc3545";
+      }
+    });
+
+    toggleMicBtn.addEventListener('click', function() {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        toggleMicBtn.style.backgroundColor = audioTrack.enabled ? "#374151" : "#dc3545";
+      }
+    });
+
+    endCallBtn.addEventListener('click', function() {
+      if (callRef) callRef.update({ status: "ended" });
+      closeCall();
+    });
+
+    function closeCall() {
+      clearTimeout(callTimeoutTimer);
+
+      if (callRef && !isCallLogged) {
+        isCallLogged = true;
+        const timeTalked = callSeconds;
+        const clockTime = getCurrentClockTime();
+        let logText = "";
+        let isMissed = false;
+
+        const callTypeLabel = isVideoCall ? "ভিডিও কল" : "কল";
+
+        if (isCallConnected && timeTalked > 0) {
+          const durationStr = getFormattedTime(timeTalked);
+          if (isCaller) logText = `📹↗️ আউটগোয়িং ${callTypeLabel} (${durationStr}) • ${clockTime}`;
+          else logText = `📹↙️ ইনকামিং ${callTypeLabel} (${durationStr}) • ${clockTime}`;
+        } else {
+          isMissed = true;
+          if (isCaller) logText = `📵 কোনো উত্তর পাওয়া যায়নি • ${clockTime}`;
+          else logText = `📵 মিসড ${callTypeLabel} • ${clockTime}`;
+        }
+
+        db.ref("messages").push({
+          sender: currentUserName,
+          receiver: activeChatUser,
+          avatar: currentUserAvatar,
+          type: "call_log",
+          text: logText,
+          isMissed: isMissed,
+          timestamp: Date.now()
+        });
+
+        callRef.off();
+      }
+
+      stopRingTone();
+      stopCallTimer();
+
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+
+      remoteVideo.srcObject = null;
+      localVideo.srcObject = null;
+      videoContainer.style.display = 'none';
+      audioUiContainer.style.display = 'block';
+      toggleVideoBtn.style.display = 'none';
+      toggleMicBtn.style.display = 'none';
+      callModal.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
