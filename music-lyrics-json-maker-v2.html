@@ -1,0 +1,2061 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Lyrics JSON Maker</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+:root {
+  --green:#08783b;
+  --dark:#075c2e;
+  --red:#d32f2f;
+  --bg:#f3f6f4;
+  --white:#fff;
+  --border:#dfe5e1;
+  --text:#202820;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,"Noto Sans Bengali",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  width:255px;
+  background:#fff;
+  border-right:1px solid var(--border);
+  position:fixed;
+  top:0;bottom:0;left:0;
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+}
+.brand{
+  background:var(--green);
+  color:white;
+  padding:23px 16px;
+  font-size:20px;
+  font-weight:bold;
+  text-align:center;
+}
+.menu{padding:15px 10px}
+.menu button{
+  display:block;
+  width:100%;
+  border:0;
+  background:transparent;
+  padding:14px 15px;
+  margin-bottom:7px;
+  border-radius:7px;
+  text-align:left;
+  font-size:15px;
+  color:#333;
+}
+.menu button.active{
+  background:#e2f2e8;
+  color:var(--green);
+  font-weight:bold;
+}
+.menu button:hover{background:#edf5ef}
+
+/* Main + Fixed Header */
+.main{
+  margin-left:255px;
+  width:calc(100% - 255px);
+  padding:86px 22px 22px;
+}
+.topbar{
+  position:fixed;
+  top:0;
+  left:255px;
+  width:calc(100% - 255px);
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--green);
+  color:#fff;
+  z-index:8;
+  box-shadow:0 2px 8px #0002;
+}
+.topbar h2{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:calc(100% - 110px);
+  margin:0;
+  font-size:21px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#fff;
+}
+.toggle{
+  display:none;
+  position:absolute;
+  left:10px;
+  top:50%;
+  transform:translateY(-50%);
+  border:0;
+  background:transparent;
+  color:white;
+  padding:8px 12px;
+  border-radius:6px;
+  font-size:25px;
+  line-height:1;
+}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  margin-bottom:18px;
+}
+.card h3{margin:0 0 17px;font-size:18px}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+}
+.stat{
+  background:white;
+  padding:22px;
+  border:1px solid var(--border);
+  border-left:5px solid var(--green);
+  border-radius:9px;
+}
+.stat small{color:#666;font-size:14px}
+.stat strong{
+  display:block;
+  font-size:30px;
+  color:var(--green);
+  margin-top:10px;
+}
+label{
+  display:block;
+  font-weight:bold;
+  margin:15px 0 7px;
+  font-size:14px;
+}
+input[type=text],input[type=url],textarea{
+  width:100%;
+  padding:12px;
+  border:1px solid #ccd5cf;
+  border-radius:7px;
+  outline:none;
+  background:#fff;
+}
+input:focus,textarea:focus{
+  border-color:var(--green);
+}
+textarea{
+  min-height:190px;
+  resize:vertical;
+  line-height:1.8;
+}
+.hint{
+  font-size:12px;
+  color:#777;
+  margin-top:6px;
+}
+.audio-box{
+  border:1px dashed #aabbb0;
+  border-radius:8px;
+  padding:15px;
+  margin-top:10px;
+}
+audio{width:100%;margin-top:12px}
+.btn{
+  border:0;
+  padding:11px 17px;
+  border-radius:6px;
+  color:white;
+  background:var(--green);
+  font-weight:bold;
+}
+.btn:hover{background:var(--dark)}
+.btn-red{background:var(--red)}
+.btn-gray{background:#59645d}
+.btn-light{
+  background:#e9f2ec;
+  color:var(--green);
+}
+.btn-light:hover{background:#d8eadd}
+.actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+.hidden{display:none!important}
+
+/* Lyrics time rows */
+.lyric-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  margin-bottom:8px;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+.lyric-row.active-lyric{
+  background:#e5f5eb;
+  border:2px solid var(--green);
+  box-shadow:0 2px 8px #08783b1c;
+}
+.lyric-row.active-lyric .lyric-text{
+  color:var(--dark);
+  font-weight:bold;
+}
+.lyric-text{
+  flex:1;
+  line-height:1.7;
+  overflow-wrap:anywhere;
+}
+.time{
+  min-width:88px;
+  color:var(--green);
+  font-weight:bold;
+  font-size:13px;
+  text-align:center;
+}
+.time-btn{
+  border:0;
+  border-radius:5px;
+  background:#e4f2e8;
+  color:var(--green);
+  padding:9px;
+  white-space:nowrap;
+  font-size:13px;
+  font-weight:bold;
+}
+.time-btn:hover{background:#cce7d5}
+.table-wrap{overflow-x:auto}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:420px;
+}
+th,td{
+  padding:13px 10px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+  font-size:14px;
+}
+th{background:#edf4ef}
+.icon-btn{
+  width:36px;
+  height:34px;
+  border:0;
+  border-radius:6px;
+  margin:2px;
+  background:#edf2ee;
+  font-size:17px;
+}
+.icon-btn:hover{background:#dce9df}
+.empty{
+  text-align:center;
+  color:#777;
+  padding:25px;
+}
+.notice{
+  background:#fff6df;
+  border:1px solid #f0dfaa;
+  padding:12px;
+  border-radius:7px;
+  font-size:13px;
+  line-height:1.7;
+}
+.overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#0006;
+  z-index:9;
+}
+
+/* Note view modal */
+.note-view-overlay{
+  position:fixed;
+  inset:0;
+  background:#0007;
+  z-index:30;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+.note-view-box{
+  width:100%;
+  max-width:650px;
+  max-height:85vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:10px;
+  padding:20px;
+  box-shadow:0 8px 30px #0003;
+}
+.note-view-lyrics{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.9;
+  border:1px solid var(--border);
+  border-radius:7px;
+  padding:14px;
+  margin-top:14px;
+  max-height:55vh;
+  overflow:auto;
+}
+#copyNotice{
+  position:fixed;
+  z-index:50;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%);
+  box-shadow:0 3px 14px #0002;
+}
+
+/* Firebase login / sync status */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.login-card{width:100%;max-width:430px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:26px;box-shadow:0 8px 28px #0001;text-align:center}
+.google-login-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:20px;padding:13px;border:1px solid #ccd5cf;border-radius:7px;background:#fff;color:#222;font-weight:bold}
+.google-login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-message{font-size:13px;line-height:1.7;color:#666;margin-top:12px}
+#syncStatus{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:750px){#syncStatus{right:7px;max-width:75px;font-size:10px}.topbar h2{width:calc(100% - 150px)}}
+
+/* Mobile */
+@media(max-width:750px){
+  .sidebar{transform:translateX(-100%);transition:.25s}
+  .sidebar.open{transform:translateX(0)}
+  .overlay.show{display:block}
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:78px 13px 13px;
+  }
+  .topbar{
+    left:0;
+    width:100%;
+    height:64px;
+  }
+  .toggle{display:block}
+  .topbar h2{
+    font-size:18px;
+    width:calc(100% - 112px);
+  }
+  .card{padding:14px}
+  .lyric-row{flex-wrap:wrap}
+  .lyric-text{min-width:100%}
+  .time{flex:1;text-align:left}
+}
+
+/* Floating audio player: fixed directly above the existing action footer */
+#audioBox.player-floating{
+  position:fixed;
+  left:255px;
+  right:0;
+  bottom:68px;
+  z-index:19;
+  margin:0;
+  padding:10px 16px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:10px 10px 0 0;
+  box-shadow:0 -3px 12px #0002;
+}
+#audioBox.player-floating audio{margin-top:6px}
+@media(max-width:750px){
+  #audioBox.player-floating{
+    left:0;
+    padding:9px 12px;
+  }
+}
+
+/* Fixed SUBMIT / UPDATE / RESET footer */
+#songForm > .actions:last-child{
+  position:fixed;
+  left:255px;
+  right:0;
+  bottom:0;
+  z-index:20;
+  margin:0;
+  padding:12px 22px;
+  background:#fff;
+  border-top:1px solid var(--border);
+  box-shadow:0 -3px 12px #0002;
+}
+#songForm{padding-bottom:190px}
+@media(max-width:750px){
+  #songForm > .actions:last-child{
+    left:0;
+    padding:12px 13px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN: Firebase config দিলে Google login চালু হবে; config না থাকলে Local Mode চলবে -->
+<div id="loginScreen" class="login-screen hidden">
+  <div class="login-card">
+    <div style="font-size:42px">🎵</div>
+    <h2 style="margin:10px 0;color:var(--green)">Music Lyrics</h2>
+    <p style="margin:0;color:#555">আপনার অনুমোদিত Google Account নির্বাচন করে লগইন করুন।</p>
+    <button id="googleLoginBtn" class="google-login-btn" onclick="loginWithGoogle()">
+      <span style="font-size:20px;color:#4285F4">G</span> Google Account নির্বাচন করে লগইন
+    </button>
+    <div id="loginMessage" class="login-message">শুধুমাত্র অনুমোদিত Gmail দিয়ে প্রবেশ করা যাবে।</div>
+  </div>
+</div>
+
+<div class="app hidden" id="appRoot">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="brand">🎵 Music Lyrics 𝄞</div>
+  <nav class="menu">
+    <button class="active" data-page="dashboard">▦ &nbsp; ড্যাশবোর্ড</button>
+    <button data-page="songs">♫ &nbsp; সকল গানের লিরিক 𝄞</button>
+    <button data-page="jsonFiles">📁 &nbsp; সকল Json ফাইল</button>
+    <button data-page="notes">📝 &nbsp; নোট</button>
+    <button data-page="backup">💾 &nbsp; ব্যাকআপ</button>
+  </nav>
+</aside>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <div class="topbar">
+    <button class="toggle" onclick="toggleSidebar()">☰</button>
+    <h2 id="pageTitle">ড্যাশবোর্ড</h2>
+    <span id="syncStatus">Local Mode</span>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="page">
+
+    <div class="stats">
+      <div class="stat">
+        <small>মোট গানের সংখ্যা</small>
+        <strong id="totalSongs">০</strong>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>🎵 নতুন গান তৈরি</h3>
+
+      <form id="songForm">
+
+        <input type="hidden" id="editId">
+
+        <label>গানের নাম</label>
+        <input type="text" id="songName"
+          placeholder="গানের নাম লিখুন" required>
+
+        <label>গানের কথা (প্রতি লাইনে একটি লাইন)</label>
+        <textarea id="lyricsInput"
+          placeholder="প্রথম লাইন&#10;দ্বিতীয় লাইন&#10;তৃতীয় লাইন"
+          required></textarea>
+
+        <div class="hint">
+          প্রতিটি লাইন আলাদা লাইনে লিখবেন। মিউজিকের বিরতির জায়গায়
+          আপনার পছন্দমতো চিহ্নের লাইনও লিখতে পারবেন।
+        </div>
+
+        <label>অডিও লিংক</label>
+        <input type="url" id="audioUrl"
+          placeholder="https://example.com/song.mp3">
+
+        <label>অথবা ফোন / কম্পিউটার থেকে অডিও আপলোড</label>
+        <input type="file" id="audioFile" accept="audio/*">
+
+        <div class="audio-box" id="audioBox">
+          <div id="audioStatus" class="hint">
+            অডিও লিংক দিন অথবা অডিও ফাইল নির্বাচন করুন।
+          </div>
+          <audio id="audioPlayer" controls class="hidden"></audio>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-light"
+            onclick="prepareLyrics()">লাইন প্রস্তুত করুন</button>
+          <button type="button" class="btn btn-gray"
+            onclick="playAudio()">▶ অডিও চালান</button>
+        </div>
+
+        <div class="card hidden" id="timeSection"
+          style="margin-top:20px;padding:14px">
+          <h3>⏱️ প্রতিটি লাইনের টাইম সেট করুন</h3>
+          <div class="hint" style="margin-bottom:12px">
+            অডিও চালিয়ে যে মুহূর্তে লাইন শুরু হবে,
+            সেই লাইনের পাশে ⏱️ বাটনে ক্লিক করুন।
+          </div>
+          <div id="lyricsRows"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn" id="submitBtn">
+            SUBMIT
+          </button>
+          <button type="button" class="btn btn-gray"
+            onclick="resetForm()">RESET</button>
+        </div>
+
+      </form>
+    </div>
+  </section>
+
+  <!-- SONGS -->
+  <section id="songs" class="page hidden">
+    <div class="card">
+      <h3>
+        গানের তালিকা
+        <span style="float:right;color:var(--green)">
+          মোট <span id="songCount">০</span> টি
+        </span>
+      </h3>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:55px">নং</th>
+              <th>গানের নাম</th>
+              <th style="width:145px">অ্যাকশন</th>
+            </tr>
+          </thead>
+          <tbody id="songTable"></tbody>
+        </table>
+      </div>
+      <div id="emptySongs" class="empty hidden">
+        এখনো কোনো গান তৈরি করা হয়নি।
+      </div>
+    </div>
+  </section>
+
+  <!-- ALL JSON FILES -->
+  <section id="jsonFiles" class="page hidden">
+    <div class="card">
+      <h3>📥 JSON ফাইল ইনপুট করুন</h3>
+      <label for="jsonUploadInput">ফোন / কম্পিউটার থেকে JSON ফাইল নির্বাচন করুন</label>
+      <input type="file" id="jsonUploadInput" accept=".json,application/json" multiple>
+      <div class="hint">একসঙ্গে একাধিক .json ফাইল নির্বাচন করতে পারবেন। ফাইলগুলো আলাদা সংগ্রহে সংরক্ষিত হবে; গানের তালিকায় নিজে থেকে যুক্ত হবে না।</div>
+      <div class="actions">
+        <button type="button" class="btn" onclick="importJSONFiles()">📤 JSON আপলোড করুন</button>
+      </div>
+      <div id="jsonImportStatus" class="hint" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h3>
+        সংরক্ষিত সকল Json ফাইল
+        <span style="float:right;color:var(--green)">মোট <span id="jsonFileCount">০</span> টি</span>
+      </h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:55px">নং</th>
+              <th>ফাইলের নাম</th>
+              <th style="width:190px">অ্যাকশন</th>
+            </tr>
+          </thead>
+          <tbody id="jsonFileTable"></tbody>
+        </table>
+      </div>
+      <div id="emptyJSONFiles" class="empty">এখনো কোনো JSON ফাইল আপলোড করা হয়নি।</div>
+    </div>
+  </section>
+
+  <div id="jsonFileModal" class="note-view-overlay hidden" onclick="if(event.target===this)closeJSONModal()">
+    <div class="note-view-box">
+      <h3 id="jsonModalTitle" style="margin:0 0 12px">JSON ফাইল</h3>
+      <label for="jsonModalName">ফাইলের নাম</label>
+      <input type="text" id="jsonModalName" placeholder="ফাইলের নাম">
+      <label for="jsonModalContent">JSON Content</label>
+      <textarea id="jsonModalContent" spellcheck="false" style="min-height:300px;font-family:monospace"></textarea>
+      <div class="actions" id="jsonEditActions">
+        <button type="button" class="btn" onclick="saveEditedJSONFile()">💾 পরিবর্তন সংরক্ষণ</button>
+        <button type="button" class="btn btn-gray" onclick="closeJSONModal()">বন্ধ করুন</button>
+      </div>
+      <div class="actions hidden" id="jsonViewActions">
+        <button type="button" class="btn btn-gray" onclick="closeJSONModal()">বন্ধ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <section id="notes" class="page hidden">
+    <div class="card">
+      <h3 id="noteFormTitle">📝 নতুন নোট লিখুন</h3>
+      <form id="noteForm">
+        <input type="hidden" id="noteEditId">
+        <label>গানের নাম</label>
+        <input type="text" id="noteName" placeholder="গানের নাম লিখুন" required>
+        <label>গানের সম্পূর্ণ লিরিক</label>
+        <textarea id="noteLyrics" placeholder="এখানে গানের সম্পূর্ণ লিরিক লিখুন..." required></textarea>
+        <div class="actions">
+          <button type="submit" class="btn" id="noteSubmitBtn">সংরক্ষণ করুন</button>
+          <button type="button" class="btn btn-gray" onclick="resetNoteForm()">RESET</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>
+        সংরক্ষিত নোট
+        <span style="float:right;color:var(--green)">
+          মোট <span id="noteCount">০</span> টি
+        </span>
+      </h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:55px">নং</th>
+              <th>গানের নাম</th>
+              <th style="width:145px">অ্যাকশন</th>
+            </tr>
+          </thead>
+          <tbody id="noteTable"></tbody>
+        </table>
+      </div>
+      <div id="emptyNotes" class="empty hidden">এখনো কোনো নোট সংরক্ষণ করা হয়নি।</div>
+      <div id="copyNotice" class="notice hidden">কপি হয়েছে</div>
+    </div>
+
+    <div id="noteViewModal" class="note-view-overlay hidden" onclick="if(event.target===this)closeNoteView()">
+      <div class="note-view-box">
+        <h3 id="noteViewTitle" style="margin:0 0 12px">গানের লিরিক</h3>
+        <div id="noteViewLyrics" class="note-view-lyrics"></div>
+        <div class="actions">
+          <button type="button" class="btn" onclick="copyViewedNote()">📋 কপি</button>
+          <button type="button" class="btn btn-gray" onclick="closeNoteView()">বন্ধ করুন</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BACKUP -->
+  <section id="backup" class="page hidden">
+    <div class="card">
+      <h3>📦 ব্যাকআপ ও Restore</h3>
+
+      <p>
+        সকল গানের JSON এবং ডিভাইসে থাকা সংযুক্ত অডিও ফাইল একসঙ্গে
+        ZIP ফাইলে স্থানীয় ব্যাকআপ নিতে পারবেন।
+      </p>
+
+      <div class="notice">
+        ব্যাকআপ ZIP-এর মধ্যে প্রতিটি গানের আলাদা JSON,
+        ডিভাইসে সংরক্ষিত অডিও ফাইল এবং গানের তথ্যের তালিকা থাকবে।
+      </div>
+
+      <div class="actions">
+        <button class="btn" onclick="createBackup()">
+          💾 সকল গানের ব্যাকআপ
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>ব্যাকআপ Restore</h3>
+      <p>আগে তৈরি করা ZIP ব্যাকআপ নির্বাচন করে Restore করুন।</p>
+
+      <input type="file" id="restoreFile" accept=".zip">
+
+      <div class="actions">
+        <button class="btn btn-light" onclick="restoreBackup()">
+          📤 Restore
+        </button>
+      </div>
+
+      <p class="hint">
+        Restore করলে একই ID-এর পুরোনো গান আপডেট হবে।
+        অন্য গানগুলো অক্ষত থাকবে।
+      </p>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<!-- Firebase SDK: Google Authentication ও Firestore; audio files remain local -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+
+/* ==================================
+   FIREBASE CONFIGURATION
+   পরে Firebase Console থেকে পাওয়া Config এখানে বসাবেন।
+   Placeholder রেখে দিলে অ্যাপ Local Mode-এ চলবে।
+================================== */
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBbhsx3WVAR1poKDke4393hkJGYbmgQpjg",
+  authDomain: "music-lyrics-json-maker.firebaseapp.com",
+  projectId: "music-lyrics-json-maker",
+  storageBucket: "music-lyrics-json-maker.firebasestorage.app",
+  messagingSenderId: "504233414116",
+  appId: "1:504233414116:web:e2a622ff53a35d08884bf1"
+};
+
+// Firebase Console > Project settings > Your apps থেকে Config মান বসাবেন।
+// Google Authentication এবং Firestore Database Enable করতে হবে। Audio Firebase-এ আপলোড হবে না।
+
+const ALLOWED_EMAIL = "masumbillah6778@gmail.com";
+let firebaseEnabled=false;
+let firebaseApp=null;
+let firebaseAuth=null;
+let cloudDB=null;
+let signedInUser=null;
+let appStarted=false;
+let cloudSyncBusy=false;
+const TOMBSTONE_KEY="MusicLyricsCloudDeleted_v1";
+
+function hasRealFirebaseConfig(){
+  return !!(FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith("PASTE_") &&
+    FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.projectId!=="YOUR_PROJECT_ID" &&
+    FIREBASE_CONFIG.appId && !FIREBASE_CONFIG.appId.startsWith("PASTE_"));
+}
+
+function setSyncStatus(message){
+  const el=document.getElementById("syncStatus");
+  if(el)el.textContent=message;
+}
+
+function showLogin(message){
+  document.getElementById("appRoot").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  if(message)document.getElementById("loginMessage").textContent=message;
+}
+
+function showMainApp(){
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("appRoot").classList.remove("hidden");
+}
+
+async function loginWithGoogle(){
+  if(!firebaseEnabled || !firebaseAuth){
+    showLogin("Firebase Config বসানো হয়নি। এখন Local Mode ব্যবহার করুন।");
+    return;
+  }
+  const btn=document.getElementById("googleLoginBtn");
+  btn.disabled=true;
+  document.getElementById("loginMessage").textContent="Google Account নির্বাচন করার অপেক্ষায়...";
+  const provider=new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({prompt:"select_account"});
+  try{
+    await firebaseAuth.signInWithPopup(provider);
+  }catch(error){
+    console.error("Google sign-in:",error);
+    if(error.code==="auth/popup-blocked" || error.code==="auth/operation-not-supported-in-this-environment"){
+      try{await firebaseAuth.signInWithRedirect(provider);return;}catch(redirectError){console.error(redirectError);}
+    }
+    document.getElementById("loginMessage").textContent="লগইন করা যায়নি: "+(error.message||"আবার চেষ্টা করুন।");
+  }finally{btn.disabled=false;}
+}
+
+async function logoutGoogle(){
+  if(firebaseAuth && signedInUser){
+    await firebaseAuth.signOut();
+  }
+}
+
+function getTombstones(){
+  try{return JSON.parse(localStorage.getItem(TOMBSTONE_KEY)||"[]");}catch(e){return [];}
+}
+function setTombstones(items){
+  try{localStorage.setItem(TOMBSTONE_KEY,JSON.stringify(items));}catch(e){console.warn("Tombstone save failed",e);}
+}
+function markDeletedCloud(type,id){
+  const list=getTombstones().filter(x=>!(x.type===type && x.id===id));
+  list.push({type,id});setTombstones(list);
+}
+function clearDeletedCloud(type,id){setTombstones(getTombstones().filter(x=>!(x.type===type && x.id===id)));}
+
+function cloudCollection(type){
+  if(!signedInUser || !cloudDB)throw new Error("Cloud account is not signed in");
+  return cloudDB.collection("users").doc(signedInUser.uid).collection(type);
+}
+
+async function syncRecordToCloud(type,record){
+  if(!firebaseEnabled || !signedInUser || !navigator.onLine){
+    if(firebaseEnabled) setSyncStatus("Offline · Local Save");
+    return false;
+  }
+  // Audio file/blob is intentionally LOCAL ONLY; never upload it to Firebase.
+  const data={...record};
+  delete data.audioBlob;
+  delete data.audioStoragePath; // remove legacy Storage metadata, if present
+  await cloudCollection(type).doc(String(record.id)).set(data,{merge:true});
+  clearDeletedCloud(type,record.id);
+  setSyncStatus("Cloud Synced");
+  return true;
+}
+
+async function deleteCloudRecord(type,id){
+  if(!firebaseEnabled)return;
+  if(!signedInUser || !navigator.onLine){markDeletedCloud(type,id);return;}
+  try{
+    await cloudCollection(type).doc(String(id)).delete();
+    clearDeletedCloud(type,id);
+  }catch(error){console.warn("Cloud delete queued",error);markDeletedCloud(type,id);setSyncStatus("Delete Pending");}
+}
+
+async function syncAllData(){
+  if(!firebaseEnabled || !signedInUser || !navigator.onLine || cloudSyncBusy)return;
+  cloudSyncBusy=true;setSyncStatus("Syncing...");
+  try{
+    const tombstones=getTombstones();
+    const tombstoneKeys=new Set(tombstones.map(x=>x.type+":"+x.id));
+    const remaining=[];
+    for(const item of tombstones){
+      try{await cloudCollection(item.type).doc(String(item.id)).delete();}
+      catch(e){remaining.push(item);}
+    }
+    setTombstones(remaining);
+    for(const type of ["songs","notes","jsonFiles"]){
+      const local=type==="songs"?await getAllSongs():type==="notes"?await getAllNotes():await getAllJSONFiles();
+      const snap=await cloudCollection(type).get();
+      const remote=new Map();
+      snap.forEach(doc=>remote.set(String(doc.id),doc.data()));
+      const localMap=new Map(local.map(item=>[String(item.id),item]));
+      for(const [id,cloudItem] of remote){
+        if(tombstoneKeys.has(type+":"+id))continue;
+        if(localMap.has(id)){
+          const localItem=localMap.get(id);
+          const localTime=Date.parse(localItem.updatedAt||localItem.createdAt||0)||0;
+          const cloudTime=Date.parse(cloudItem.updatedAt||cloudItem.createdAt||0)||0;
+          if(localTime>cloudTime){await syncRecordToCloud(type,localItem);}
+          else{
+            const incoming={...cloudItem};
+            if(type==="songs"){
+              // Keep this device's local audio file; it is not part of cloud data.
+              incoming.audioBlob=localItem.audioBlob||null;
+              delete incoming.audioStoragePath;
+            }
+            await putLocalRecord(type,incoming);
+          }
+        }else{
+          const incoming={...cloudItem};
+          if(type==="songs"){
+            // Cloud-only songs arrive with lyrics and timestamps; audio stays local.
+            incoming.audioBlob=null;
+            delete incoming.audioStoragePath;
+          }
+          await putLocalRecord(type,incoming);
+        }
+      }
+      for(const [id,item] of localMap){if(!remote.has(id))await syncRecordToCloud(type,item);}
+    }
+    setSyncStatus(remaining.length?"Sync Pending":"Cloud Synced");
+  }catch(error){console.error("Cloud sync:",error);setSyncStatus("Sync Error · Local Safe");}
+  finally{cloudSyncBusy=false;}
+}
+
+function putLocalRecord(type,record){
+  const store=type==="songs"?STORE:type==="notes"?NOTES_STORE:JSON_FILES_STORE;
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(store,"readwrite");tx.objectStore(store).put(record);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+}
+
+async function initializeFirebase(){
+  if(!hasRealFirebaseConfig()){
+    firebaseEnabled=false;showMainApp();setSyncStatus("Local Mode");return;
+  }
+  if(!window.firebase || !firebase.apps){
+    showLogin("Firebase SDK লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন অথবা Local Mode-এ Config ফাঁকা রাখুন।");return;
+  }
+  try{
+    firebaseApp=firebase.apps.length?firebase.app():firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseAuth=firebase.auth();cloudDB=firebase.firestore();firebaseEnabled=true;
+    showLogin("শুধুমাত্র "+ALLOWED_EMAIL+" দিয়ে প্রবেশ করা যাবে।");
+    firebaseAuth.onAuthStateChanged(async user=>{
+      if(!user){signedInUser=null;showLogin("আপনার Google Account নির্বাচন করে লগইন করুন।");return;}
+      if((user.email||"").toLowerCase()!==ALLOWED_EMAIL.toLowerCase()){
+        await firebaseAuth.signOut();signedInUser=null;
+        showLogin("এই Gmail অনুমোদিত নয়। "+ALLOWED_EMAIL+" নির্বাচন করুন।");return;
+      }
+      signedInUser=user;showMainApp();setSyncStatus("Loading Cloud...");
+      if(!appStarted){appStarted=true;await syncAllData();await refreshAllViews();}
+      else{await syncAllData();await refreshAllViews();}
+    });
+  }catch(error){console.error(error);firebaseEnabled=false;showLogin("Firebase চালু করা যায়নি: "+error.message);}
+}
+
+window.addEventListener("online",()=>{if(firebaseEnabled && signedInUser)syncAllData();});
+
+/* ==================================
+   DATABASE
+================================== */
+
+const DB_NAME = "MusicLyricsDatabase";
+const STORE = "songs";
+const NOTES_STORE = "notes";
+const JSON_FILES_STORE = "jsonFiles";
+let db;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open(DB_NAME,3);
+
+    request.onupgradeneeded=e=>{
+      const database=e.target.result;
+      if(!database.objectStoreNames.contains(STORE)){
+        database.createObjectStore(STORE,{keyPath:"id"});
+      }
+      if(!database.objectStoreNames.contains(NOTES_STORE)){
+        database.createObjectStore(NOTES_STORE,{keyPath:"id"});
+      }
+      if(!database.objectStoreNames.contains(JSON_FILES_STORE)){
+        database.createObjectStore(JSON_FILES_STORE,{keyPath:"id"});
+      }
+    };
+
+    request.onsuccess=e=>{
+      db=e.target.result;
+      resolve(db);
+    };
+
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+function getAllSongs(){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,"readonly");
+    const request=tx.objectStore(STORE).getAll();
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+async function saveSong(song){
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(song);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+  try{await syncRecordToCloud("songs",song);}catch(error){console.warn("Song saved locally; cloud sync pending",error);setSyncStatus("Local Saved · Sync Pending");}
+}
+
+async function deleteSong(id){
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).delete(id);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+  await deleteCloudRecord("songs",id);
+}
+
+function getAllNotes(){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(NOTES_STORE,"readonly");
+    const request=tx.objectStore(NOTES_STORE).getAll();
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+async function saveNote(note){
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(NOTES_STORE,"readwrite");tx.objectStore(NOTES_STORE).put(note);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+  try{await syncRecordToCloud("notes",note);}catch(error){console.warn("Note saved locally; cloud sync pending",error);setSyncStatus("Local Saved · Sync Pending");}
+}
+
+async function deleteNote(id){
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(NOTES_STORE,"readwrite");tx.objectStore(NOTES_STORE).delete(id);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+  await deleteCloudRecord("notes",id);
+}
+
+function getAllJSONFiles(){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(JSON_FILES_STORE,"readonly");
+    const request=tx.objectStore(JSON_FILES_STORE).getAll();
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+async function saveJSONFile(file){
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(JSON_FILES_STORE,"readwrite");tx.objectStore(JSON_FILES_STORE).put(file);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+  try{await syncRecordToCloud("jsonFiles",file);}catch(error){console.warn("JSON saved locally; cloud sync pending",error);setSyncStatus("Local Saved · Sync Pending");}
+}
+
+async function deleteJSONFile(id){
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(JSON_FILES_STORE,"readwrite");tx.objectStore(JSON_FILES_STORE).delete(id);
+    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+  });
+  await deleteCloudRecord("jsonFiles",id);
+}
+
+/* ==================================
+   GENERAL
+================================== */
+
+const $=id=>document.getElementById(id);
+// Move the existing audio box out of the fixed sidebar so it can float above the footer.
+$("appRoot").appendChild($("audioBox"));
+$("audioBox").classList.add("hidden");
+
+let currentLines=[];
+let audioBlob=null;
+let audioObjectURL=null;
+let editingSong=null;
+let viewedNoteLyrics="";
+
+function bnNumber(number){
+  return String(number).replace(/[0-9]/g,d=>"০১২৩৪৫৬৭৮৯"[d]);
+}
+
+function formatTime(ms){
+  if(ms===null || ms===undefined) return "--:--.---";
+
+  const total=Math.floor(ms);
+  const minutes=Math.floor(total/60000);
+  const seconds=Math.floor((total%60000)/1000);
+  const milli=total%1000;
+
+  return String(minutes).padStart(2,"0")+":"+
+    String(seconds).padStart(2,"0")+"."+
+    String(milli).padStart(3,"0");
+}
+
+function safeName(name){
+  return name.replace(/[\\/:*?"<>|]/g,"_").trim() || "song";
+}
+
+/* ==================================
+   SIDEBAR NAVIGATION
+================================== */
+
+document.querySelectorAll(".menu button").forEach(button=>{
+  button.addEventListener("click",()=>{
+    showPage(button.dataset.page);
+    closeSidebar();
+  });
+});
+
+function showPage(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+  $(page).classList.remove("hidden");
+
+  document.querySelectorAll(".menu button").forEach(b=>{
+    b.classList.toggle("active",b.dataset.page===page);
+  });
+
+  const titles={
+    dashboard:"ড্যাশবোর্ড",
+    songs:"সকল গানের লিরিক",
+    notes:"নোট",
+    jsonFiles:"সকল Json ফাইল",
+    backup:"ব্যাকআপ"
+  };
+
+  $("pageTitle").textContent=titles[page];
+
+  // Floating player is visible only on the Dashboard and only when audio is loaded.
+  $("audioBox").classList.toggle(
+    "hidden",
+    page!=="dashboard" || !$("audioBox").classList.contains("player-floating")
+  );
+}
+
+function toggleSidebar(){
+  $("sidebar").classList.toggle("open");
+  $("overlay").classList.toggle("show");
+}
+
+function closeSidebar(){
+  $("sidebar").classList.remove("open");
+  $("overlay").classList.remove("show");
+}
+
+/* ==================================
+   AUDIO
+================================== */
+
+function clearAudioPreview(){
+  $("audioPlayer").pause();
+  $("audioPlayer").removeAttribute("src");
+  $("audioPlayer").load();
+  $("audioPlayer").classList.add("hidden");
+  $("audioBox").classList.remove("player-floating");
+  $("audioBox").classList.add("hidden");
+
+  if(audioObjectURL){
+    URL.revokeObjectURL(audioObjectURL);
+    audioObjectURL=null;
+  }
+}
+
+
+function showAudio(src,status){
+  clearAudioPreview();
+
+  if(!src) return;
+
+  $("audioPlayer").src=src;
+  $("audioPlayer").load();
+  $("audioPlayer").classList.remove("hidden");
+  $("audioBox").classList.add("player-floating");
+  $("audioBox").classList.toggle("hidden", $("dashboard").classList.contains("hidden"));
+  $("audioStatus").textContent=status;
+}
+
+$("audioFile").addEventListener("change",e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+
+  audioBlob=file;
+  $("audioUrl").value="";
+
+  clearAudioPreview();
+
+  audioObjectURL=URL.createObjectURL(file);
+
+  $("audioPlayer").src=audioObjectURL;
+  $("audioPlayer").load();
+  $("audioPlayer").classList.remove("hidden");
+  $("audioBox").classList.add("player-floating");
+  $("audioBox").classList.toggle("hidden", $("dashboard").classList.contains("hidden"));
+  $("audioStatus").textContent="অডিও ফাইল: "+file.name;
+});
+
+$("audioUrl").addEventListener("change",()=>{
+  const url=$("audioUrl").value.trim();
+  if(!url)return;
+
+  audioBlob=null;
+  $("audioFile").value="";
+  showAudio(url,"অডিও লিংক লোড করা হচ্ছে...");
+});
+
+
+function playAudio(){
+  if(!$("audioPlayer").src){
+    alert("প্রথমে অডিও লিংক দিন অথবা অডিও ফাইল আপলোড করুন।");
+    return;
+  }
+
+  $("audioPlayer").play().catch(()=>{
+    alert("অডিও চালু করা যায়নি। অডিও লিংক পরীক্ষা করুন।");
+  });
+}
+
+/* ==================================
+   LYRICS AND TIMESTAMP
+================================== */
+
+function prepareLyrics(){
+  const text=$("lyricsInput").value;
+  const lines=text.split(/\r?\n/).filter(line=>line.trim()!=="");
+
+  if(lines.length===0){
+    alert("প্রথমে গানের লাইন লিখুন।");
+    return;
+  }
+
+  // Existing timestamps preserve by line position
+  currentLines=lines.map((line,index)=>({
+    line:line,
+    time:currentLines[index]?.line===line
+      ? currentLines[index].time
+      : null
+  }));
+
+  renderLyricsRows();
+  $("timeSection").classList.remove("hidden");
+}
+
+function renderLyricsRows(){
+  $("lyricsRows").innerHTML="";
+
+  currentLines.forEach((item,index)=>{
+    const row=document.createElement("div");
+    row.className="lyric-row";
+    row.dataset.lyricIndex=index;
+
+    const text=document.createElement("div");
+    text.className="lyric-text";
+    text.textContent=(index+1)+". "+item.line;
+
+    const time=document.createElement("div");
+    time.className="time";
+    time.textContent=formatTime(item.time);
+
+    const editButton=document.createElement("button");
+    editButton.className="time-btn";
+    editButton.type="button";
+    editButton.textContent="✏️";
+    editButton.title="টাইম এডিট করুন";
+    editButton.onclick=()=>{
+      const currentValue=item.time===null ? "00:00.000" : formatTime(item.time);
+      const entered=prompt("নতুন টাইম লিখুন (MM:SS.mmm):",currentValue);
+      if(entered===null)return;
+
+      const match=entered.trim().match(/^(\d+):([0-5]?\d)(?:\.(\d{1,3}))?$/);
+      if(!match){
+        alert("সঠিক ফরম্যাটে টাইম লিখুন। উদাহরণ: 00:12.231");
+        return;
+      }
+
+      const minutes=Number(match[1]);
+      const seconds=Number(match[2]);
+      const milliseconds=Number((match[3]||"0").padEnd(3,"0"));
+      item.time=(minutes*60000)+(seconds*1000)+milliseconds;
+      time.textContent=formatTime(item.time);
+      updateActiveLyricRow();
+    };
+
+    const deleteButton=document.createElement("button");
+    deleteButton.className="time-btn";
+    deleteButton.type="button";
+    deleteButton.textContent="🗑️";
+    deleteButton.title="লাইন ডিলেট করুন";
+    deleteButton.onclick=()=>{
+      if(!confirm("এই লাইনটি ডিলেট করতে চান?"))return;
+      currentLines.splice(index,1);
+      renderLyricsRows();
+    };
+
+    const button=document.createElement("button");
+    button.className="time-btn";
+    button.type="button";
+    button.textContent="⏱️";
+
+    button.title="বর্তমান অডিও সময় সেট করুন";
+    button.onclick=()=>{
+      const player=$("audioPlayer");
+
+      if(!player.src){
+        alert("প্রথমে অডিও নির্বাচন করুন।");
+        return;
+      }
+
+      if(!Number.isFinite(player.currentTime)){
+        alert("অডিওর সময় পাওয়া যায়নি।");
+        return;
+      }
+
+      item.time=Math.round(player.currentTime*1000);
+      time.textContent=formatTime(item.time);
+      updateActiveLyricRow();
+    };
+
+    row.append(text,time,editButton,deleteButton,button);
+    $("lyricsRows").appendChild(row);
+  });
+
+  updateActiveLyricRow();
+}
+
+/* ==================================
+   LIVE PLAYING LINE HIGHLIGHT
+================================== */
+
+function updateActiveLyricRow(){
+  const player=$("audioPlayer");
+  const nowMs=Number.isFinite(player.currentTime)
+    ? Math.round(player.currentTime*1000)
+    : -1;
+
+  let activeIndex=-1;
+  let latestTime=-1;
+
+  currentLines.forEach((item,index)=>{
+    if(item.time!==null && item.time!==undefined &&
+       Number.isFinite(Number(item.time)) && Number(item.time)<=nowMs &&
+       Number(item.time)>=latestTime){
+      latestTime=Number(item.time);
+      activeIndex=index;
+    }
+  });
+
+  $("lyricsRows").querySelectorAll(".lyric-row").forEach((row,index)=>{
+    row.classList.toggle("active-lyric",index===activeIndex);
+  });
+}
+
+$("audioPlayer").addEventListener("timeupdate",updateActiveLyricRow);
+$("audioPlayer").addEventListener("seeked",updateActiveLyricRow);
+$("audioPlayer").addEventListener("loadedmetadata",updateActiveLyricRow);
+
+/* ==================================
+   FORM SUBMIT
+================================== */
+
+$("songForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  const name=$("songName").value.trim();
+  const linesText=$("lyricsInput").value;
+
+  if(!name){
+    alert("গানের নাম লিখুন।");
+    return;
+  }
+
+  const lines=linesText.split(/\r?\n/).filter(x=>x.trim()!=="");
+
+  if(lines.length===0){
+    alert("গানের কথা লিখুন।");
+    return;
+  }
+
+  if(currentLines.length!==lines.length ||
+     currentLines.some((x,i)=>x.line!==lines[i])){
+    prepareLyrics();
+    alert("লাইন প্রস্তুত হয়েছে। প্রতিটি লাইনের টাইম সেট করে আবার Submit করুন।");
+    return;
+  }
+
+  // টাইম সেট না করা লাইনগুলো null হিসেবেই থাকবে; আংশিক টাইমসহ সংরক্ষণ করা যাবে।
+
+  const old=editingSong;
+
+  const song={
+    id:old ? old.id : "song_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),
+    name,
+    lyrics:currentLines.map(x=>({
+      line:x.line,
+      time:x.time
+    })),
+    audioBlob:audioBlob || old?.audioBlob || null,
+    audioUrl:$("audioUrl").value.trim() || (audioBlob ? "" : old?.audioUrl || ""),
+    audioName:audioBlob?.name || old?.audioName || "",
+    createdAt:old?.createdAt || new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  };
+
+  try{
+    await saveSong(song);
+    await saveSongJSON(song);
+    alert(old ? "গানের তথ্য আপডেট হয়েছে।" : "গান সফলভাবে সংরক্ষিত হয়েছে।");
+    resetForm();
+    await refreshSongs();
+    showPage("songs");
+  }catch(error){
+    console.error(error);
+    alert("গান সংরক্ষণ করা যায়নি।");
+  }
+});
+
+/* ==================================
+   RESET FORM
+================================== */
+
+function resetForm(){
+  $("songForm").reset();
+  $("editId").value="";
+  $("submitBtn").textContent="SUBMIT";
+  $("timeSection").classList.add("hidden");
+  $("lyricsRows").innerHTML="";
+
+  clearAudioPreview();
+
+  currentLines=[];
+  updateActiveLyricRow();
+  audioBlob=null;
+  editingSong=null;
+  $("audioStatus").textContent="অডিও লিংক দিন অথবা অডিও ফাইল নির্বাচন করুন।";
+}
+
+/* ==================================
+   SONG TABLE
+================================== */
+
+async function refreshSongs(){
+  const songs=await getAllSongs();
+
+  songs.sort((a,b)=>
+    new Date(b.createdAt)-new Date(a.createdAt)
+  );
+
+  $("totalSongs").textContent=bnNumber(songs.length);
+  $("songCount").textContent=bnNumber(songs.length);
+
+  $("songTable").innerHTML="";
+  $("emptySongs").classList.toggle("hidden",songs.length!==0);
+
+  songs.forEach((song,index)=>{
+    const tr=document.createElement("tr");
+
+    const td1=document.createElement("td");
+    td1.textContent=bnNumber(index+1);
+
+    const td2=document.createElement("td");
+    td2.textContent=song.name;
+
+    const td3=document.createElement("td");
+
+    const edit=document.createElement("button");
+    edit.className="icon-btn";
+    edit.textContent="✏️";
+    edit.title="Edit";
+    edit.onclick=()=>editSong(song.id);
+
+    const del=document.createElement("button");
+    del.className="icon-btn";
+    del.textContent="🗑️";
+    del.title="Delete";
+    del.onclick=()=>removeSong(song.id);
+
+    const download=document.createElement("button");
+    download.className="icon-btn";
+    download.textContent="⬇️";
+    download.title="Download JSON";
+    download.onclick=()=>downloadSong(song);
+
+    td3.append(edit,del,download);
+    tr.append(td1,td2,td3);
+    $("songTable").appendChild(tr);
+  });
+}
+
+/* ==================================
+   EDIT
+================================== */
+
+async function editSong(id){
+  const songs=await getAllSongs();
+  const song=songs.find(s=>s.id===id);
+
+  if(!song)return;
+
+  editingSong=song;
+  audioBlob=null;
+
+  $("songName").value=song.name;
+  $("lyricsInput").value=song.lyrics.map(x=>x.line).join("\n");
+  $("editId").value=song.id;
+  $("submitBtn").textContent="UPDATE";
+
+  currentLines=song.lyrics.map(x=>({
+    line:x.line,
+    time:x.time
+  }));
+
+  if(song.audioBlob){
+    audioBlob=null;
+    audioObjectURL=URL.createObjectURL(song.audioBlob);
+    showAudio(audioObjectURL,"সংরক্ষিত অডিও: "+song.audioName);
+  }else if(song.audioUrl){
+    $("audioUrl").value=song.audioUrl;
+    showAudio(song.audioUrl,"সংরক্ষিত অডিও লিংক");
+  }else{
+    clearAudioPreview();
+  }
+
+  $("timeSection").classList.remove("hidden");
+  renderLyricsRows();
+  showPage("dashboard");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ==================================
+   DELETE
+================================== */
+
+async function removeSong(id){
+  if(!confirm("আপনি কি এই গানটি ডিলেট করতে চান?"))return;
+
+  try{
+    await deleteSong(id);
+    await refreshSongs();
+  }catch(error){
+    alert("গান ডিলেট করা যায়নি।");
+  }
+}
+
+/* ==================================
+   DOWNLOAD JSON
+   Exact sample structure:
+   { lyrics: [{line,time}] }
+================================== */
+
+function makeLyricsJSON(song){
+  return {
+    lyrics:song.lyrics.map(item=>({
+      line:item.line,
+      time:item.time ?? null
+    }))
+  };
+}
+
+// প্রতিটি গানের জন্য একটি JSON রেকর্ড থাকবে; আপডেট করলে একই রেকর্ড আপডেট হবে।
+async function saveSongJSON(song){
+  const id="songjson_"+song.id;
+  const previous=await findJSONFile(id);
+  await saveJSONFile({
+    id,
+    name:safeName(song.name)+".json",
+    data:makeLyricsJSON(song),
+    createdAt:previous?.createdAt || song.createdAt || new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  });
+  await refreshJSONFiles();
+}
+
+function downloadBlob(blob,filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+async function downloadSong(song){
+  try{
+    await saveSongJSON(song);
+    const data=JSON.stringify(makeLyricsJSON(song),null,2);
+    const blob=new Blob([data],{
+      type:"application/json;charset=utf-8"
+    });
+    downloadBlob(blob,safeName(song.name)+".json");
+  }catch(error){
+    console.error(error);
+    alert("JSON সংরক্ষণ বা ডাউনলোড করা যায়নি।");
+  }
+}
+
+/* ==================================
+   ALL JSON FILES: IMPORT / VIEW / EDIT / DOWNLOAD / DELETE
+================================== */
+
+let editingJSONFileId=null;
+
+async function importJSONFiles(){
+  const input=$("jsonUploadInput");
+  const files=Array.from(input.files || []);
+  const status=$("jsonImportStatus");
+
+  if(files.length===0){
+    alert("প্রথমে এক বা একাধিক JSON ফাইল নির্বাচন করুন।");
+    return;
+  }
+
+  let success=0;
+  const errors=[];
+
+  for(const file of files){
+    try{
+      const raw=await file.text();
+      const data=JSON.parse(raw);
+      const cleanName=file.name.toLowerCase().endsWith(".json")
+        ? file.name : file.name+".json";
+      await saveJSONFile({
+        id:"json_"+Date.now()+"_"+Math.random().toString(36).slice(2,9),
+        name:cleanName,
+        data,
+        createdAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString()
+      });
+      success++;
+    }catch(error){
+      errors.push(file.name+" (ভুল JSON ফরম্যাট)");
+    }
+  }
+
+  input.value="";
+  await refreshJSONFiles();
+  status.textContent=bnNumber(success)+" টি ফাইল সফলভাবে সংরক্ষিত হয়েছে।"+
+    (errors.length ? " আপলোড হয়নি: "+errors.join(", ") : "");
+  if(errors.length) alert("কিছু ফাইল আপলোড করা যায়নি:\n"+errors.join("\n"));
+}
+
+async function refreshJSONFiles(){
+  const files=await getAllJSONFiles();
+  files.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  $("jsonFileCount").textContent=bnNumber(files.length);
+  $("jsonFileTable").innerHTML="";
+  $("emptyJSONFiles").classList.toggle("hidden",files.length!==0);
+
+  files.forEach((file,index)=>{
+    const tr=document.createElement("tr");
+    const td1=document.createElement("td");
+    td1.textContent=bnNumber(index+1);
+    const td2=document.createElement("td");
+    td2.textContent=file.name;
+    const td3=document.createElement("td");
+
+    const view=document.createElement("button");
+    view.className="icon-btn";
+    view.textContent="👁️";
+    view.title="দেখুন";
+    view.onclick=()=>viewJSONFile(file.id);
+
+    const download=document.createElement("button");
+    download.className="icon-btn";
+    download.textContent="⬇️";
+    download.title="ডাউনলোড";
+    download.onclick=()=>downloadStoredJSON(file.id);
+
+    const edit=document.createElement("button");
+    edit.className="icon-btn";
+    edit.textContent="✏️";
+    edit.title="এডিট";
+    edit.onclick=()=>editJSONFile(file.id);
+
+    const del=document.createElement("button");
+    del.className="icon-btn";
+    del.textContent="🗑️";
+    del.title="ডিলিট";
+    del.onclick=()=>removeJSONFile(file.id);
+
+    td3.append(view,download,edit,del);
+    tr.append(td1,td2,td3);
+    $("jsonFileTable").appendChild(tr);
+  });
+}
+
+async function findJSONFile(id){
+  const files=await getAllJSONFiles();
+  return files.find(file=>file.id===id);
+}
+
+function openJSONModal(file,readOnly){
+  editingJSONFileId=readOnly ? null : file.id;
+  $("jsonModalTitle").textContent=readOnly ? "JSON ফাইল দেখুন" : "JSON ফাইল এডিট করুন";
+  $("jsonModalName").value=file.name;
+  $("jsonModalContent").value=JSON.stringify(file.data,null,2);
+  $("jsonModalName").readOnly=readOnly;
+  $("jsonModalContent").readOnly=readOnly;
+  $("jsonEditActions").classList.toggle("hidden",readOnly);
+  $("jsonViewActions").classList.toggle("hidden",!readOnly);
+  $("jsonFileModal").classList.remove("hidden");
+}
+
+async function viewJSONFile(id){
+  const file=await findJSONFile(id);
+  if(file) openJSONModal(file,true);
+}
+
+async function editJSONFile(id){
+  const file=await findJSONFile(id);
+  if(file) openJSONModal(file,false);
+}
+
+function closeJSONModal(){
+  $("jsonFileModal").classList.add("hidden");
+  editingJSONFileId=null;
+}
+
+async function saveEditedJSONFile(){
+  if(!editingJSONFileId)return;
+  const name=$("jsonModalName").value.trim();
+  if(!name){
+    alert("ফাইলের নাম লিখুন।");
+    return;
+  }
+
+  let data;
+  try{
+    data=JSON.parse($("jsonModalContent").value);
+  }catch(error){
+    alert("JSON ফরম্যাটে ভুল আছে। সঠিক JSON লিখে আবার চেষ্টা করুন।");
+    return;
+  }
+
+  try{
+    const old=await findJSONFile(editingJSONFileId);
+    if(!old)return;
+    old.name=name.toLowerCase().endsWith(".json") ? name : name+".json";
+    old.data=data;
+    old.updatedAt=new Date().toISOString();
+    await saveJSONFile(old);
+    closeJSONModal();
+    await refreshJSONFiles();
+    alert("JSON ফাইলের পরিবর্তন সংরক্ষণ হয়েছে।");
+  }catch(error){
+    console.error(error);
+    alert("পরিবর্তন সংরক্ষণ করা যায়নি।");
+  }
+}
+
+async function downloadStoredJSON(id){
+  const file=await findJSONFile(id);
+  if(!file)return;
+  const blob=new Blob([JSON.stringify(file.data,null,2)],{
+    type:"application/json;charset=utf-8"
+  });
+  downloadBlob(blob,safeName(file.name.replace(/\.json$/i,""))+".json");
+}
+
+async function removeJSONFile(id){
+  if(!confirm("আপনি কি এই JSON ফাইলটি ডিলিট করতে চান?"))return;
+  try{
+    await deleteJSONFile(id);
+    await refreshJSONFiles();
+  }catch(error){
+    console.error(error);
+    alert("JSON ফাইল ডিলিট করা যায়নি।");
+  }
+}
+
+/* ==================================
+   NOTES
+================================== */
+
+$("noteForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const name=$("noteName").value.trim();
+  const lyrics=$("noteLyrics").value.trim();
+  if(!name || !lyrics){
+    alert("গানের নাম ও লিরিক লিখুন।");
+    return;
+  }
+
+  const oldId=$("noteEditId").value;
+  const notes=await getAllNotes();
+  const old=oldId ? notes.find(n=>n.id===oldId) : null;
+  const note={
+    id:old ? old.id : "note_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),
+    name,
+    lyrics,
+    createdAt:old?.createdAt || new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  };
+
+  try{
+    await saveNote(note);
+    alert(old ? "নোট আপডেট হয়েছে।" : "নোট সংরক্ষণ হয়েছে।");
+    resetNoteForm();
+    await refreshNotes();
+  }catch(error){
+    console.error(error);
+    alert("নোট সংরক্ষণ করা যায়নি।");
+  }
+});
+
+function resetNoteForm(){
+  $("noteForm").reset();
+  $("noteEditId").value="";
+  $("noteFormTitle").textContent="📝 নতুন নোট লিখুন";
+  $("noteSubmitBtn").textContent="সংরক্ষণ করুন";
+}
+
+async function refreshNotes(){
+  const notes=await getAllNotes();
+  notes.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  $("noteCount").textContent=bnNumber(notes.length);
+  $("noteTable").innerHTML="";
+  $("emptyNotes").classList.toggle("hidden",notes.length!==0);
+
+  notes.forEach((note,index)=>{
+    const tr=document.createElement("tr");
+    const td1=document.createElement("td");
+    td1.textContent=bnNumber(index+1);
+    const td2=document.createElement("td");
+    td2.textContent=note.name;
+    const td3=document.createElement("td");
+
+    const edit=document.createElement("button");
+    edit.className="icon-btn";
+    edit.textContent="✏️";
+    edit.title="Edit";
+    edit.onclick=()=>editNote(note.id);
+
+    const del=document.createElement("button");
+    del.className="icon-btn";
+    del.textContent="🗑️";
+    del.title="Delete";
+    del.onclick=()=>removeNote(note.id);
+
+    const view=document.createElement("button");
+    view.className="icon-btn";
+    view.textContent="👁️";
+    view.title="লিরিক দেখুন";
+    view.onclick=()=>viewNote(note);
+
+    td3.append(edit,del,view);
+    tr.append(td1,td2,td3);
+    $("noteTable").appendChild(tr);
+  });
+}
+
+async function editNote(id){
+  const notes=await getAllNotes();
+  const note=notes.find(n=>n.id===id);
+  if(!note)return;
+  $("noteEditId").value=note.id;
+  $("noteName").value=note.name;
+  $("noteLyrics").value=note.lyrics;
+  $("noteFormTitle").textContent="📝 নোট পরিবর্তন করুন";
+  $("noteSubmitBtn").textContent="UPDATE";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function removeNote(id){
+  if(!confirm("আপনি কি এই নোটটি ডিলেট করতে চান?"))return;
+  try{
+    await deleteNote(id);
+    await refreshNotes();
+  }catch(error){
+    console.error(error);
+    alert("নোট ডিলেট করা যায়নি।");
+  }
+}
+
+function viewNote(note){
+  viewedNoteLyrics=note.lyrics || "";
+  $("noteViewTitle").textContent=note.name || "গানের লিরিক";
+  $("noteViewLyrics").textContent=viewedNoteLyrics;
+  $("noteViewModal").classList.remove("hidden");
+}
+
+function closeNoteView(){
+  $("noteViewModal").classList.add("hidden");
+}
+
+async function copyViewedNote(){
+  await copyNoteLyrics(viewedNoteLyrics);
+}
+
+async function copyNoteLyrics(lyrics){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(lyrics);
+    }else{
+      const temp=document.createElement("textarea");
+      temp.value=lyrics;
+      temp.style.position="fixed";
+      temp.style.opacity="0";
+      document.body.appendChild(temp);
+      temp.select();
+      const copied=document.execCommand("copy");
+      temp.remove();
+      if(!copied) throw new Error("Copy failed");
+    }
+    const notice=$("copyNotice");
+    notice.classList.remove("hidden");
+    clearTimeout(window.copyNoticeTimer);
+    window.copyNoticeTimer=setTimeout(()=>notice.classList.add("hidden"),1800);
+  }catch(error){
+    console.error(error);
+    alert("কপি করা যায়নি।");
+  }
+}
+
+/* ==================================
+   ZIP BACKUP
+================================== */
+
+async function createBackup(){
+  const songs=await getAllSongs();
+  const notes=await getAllNotes();
+
+  if(songs.length===0 && notes.length===0){
+    alert("ব্যাকআপ নেওয়ার মতো কোনো গান বা নোট নেই।");
+    return;
+  }
+
+  if(typeof JSZip==="undefined"){
+    alert("ZIP লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।");
+    return;
+  }
+
+  try{
+    const zip=new JSZip();
+    const jsonFolder=zip.folder("JSON");
+    const audioFolder=zip.folder("AUDIO");
+
+    const manifest=[];
+
+    for(const song of songs){
+      const filename=safeName(song.name)+"_"+song.id+".json";
+
+      jsonFolder.file(
+        filename,
+        JSON.stringify(makeLyricsJSON(song),null,2)
+      );
+
+      let audioPath="";
+
+      if(song.audioBlob){
+        const audioFilename=safeName(song.audioName || song.name+".mp3");
+        audioPath="AUDIO/"+song.id+"_"+audioFilename;
+
+        audioFolder.file(audioPath,song.audioBlob);
+      }
+
+      manifest.push({
+        id:song.id,
+        name:song.name,
+        jsonFile:"JSON/"+filename,
+        audioPath,
+        audioUrl:song.audioUrl || "",
+        audioName:song.audioName || "",
+        createdAt:song.createdAt,
+        updatedAt:song.updatedAt
+      });
+    }
+
+    zip.file("manifest.json",JSON.stringify(manifest,null,2));
+    zip.file("NOTES/notes.json",JSON.stringify(notes,null,2));
+
+    const blob=await zip.generateAsync({type:"blob"});
+
+    downloadBlob(
+      blob,
+      "Music-Lyrics-Backup-"+new Date().toISOString().slice(0,10)+".zip"
+    );
+
+  }catch(error){
+    console.error(error);
+    alert("ব্যাকআপ তৈরি করা যায়নি।");
+  }
+}
+
+/* ==================================
+   RESTORE BACKUP
+================================== */
+
+async function restoreBackup(){
+  const file=$("restoreFile").files[0];
+
+  if(!file){
+    alert("প্রথমে ZIP ফাইল নির্বাচন করুন।");
+    return;
+  }
+
+  if(typeof JSZip==="undefined"){
+    alert("ZIP লাইব্রেরি লোড হয়নি।");
+    return;
+  }
+
+  if(!confirm("ব্যাকআপ Restore করতে চান? একই ID-এর গান আপডেট হবে।"))return;
+
+  try{
+    const zip=await JSZip.loadAsync(file);
+    const manifestFile=zip.file("manifest.json");
+
+    if(!manifestFile){
+      alert("এই ZIP-এ প্রয়োজনীয় manifest.json পাওয়া যায়নি।");
+      return;
+    }
+
+    const manifest=JSON.parse(await manifestFile.async("text"));
+
+    for(const item of manifest){
+      const jsonFile=zip.file(item.jsonFile);
+      if(!jsonFile)continue;
+
+      const json=JSON.parse(await jsonFile.async("text"));
+
+      if(!Array.isArray(json.lyrics))continue;
+
+      let blob=null;
+
+      if(item.audioPath){
+        const audioFile=zip.file(item.audioPath);
+        if(audioFile){
+          blob=await audioFile.async("blob");
+        }
+      }
+
+      const song={
+        id:item.id,
+        name:item.name,
+        lyrics:json.lyrics,
+        audioBlob:blob,
+        audioUrl:item.audioUrl || "",
+        audioName:item.audioName || "",
+        createdAt:item.createdAt || new Date().toISOString(),
+        updatedAt:item.updatedAt || new Date().toISOString()
+      };
+
+      await saveSong(song);
+    }
+
+    const notesFile=zip.file("NOTES/notes.json");
+    if(notesFile){
+      const restoredNotes=JSON.parse(await notesFile.async("text"));
+      if(Array.isArray(restoredNotes)){
+        for(const note of restoredNotes){
+          if(note && note.id && typeof note.name==="string" && typeof note.lyrics==="string"){
+            await saveNote(note);
+          }
+        }
+      }
+    }
+
+    await refreshSongs();
+    await refreshNotes();
+    await refreshJSONFiles();
+
+    $("restoreFile").value="";
+    alert("ব্যাকআপ Restore সম্পন্ন হয়েছে।");
+
+  }catch(error){
+    console.error(error);
+    alert("Restore করা যায়নি। ZIP ফাইলটি পরীক্ষা করুন।");
+  }
+}
+
+/* ==================================
+   START
+================================== */
+
+async function refreshAllViews(){
+  await refreshSongs();
+  await refreshNotes();
+  await refreshJSONFiles();
+}
+
+async function startApp(){
+  try{
+    await openDB();
+    if(!hasRealFirebaseConfig()){
+      appStarted=true;
+      showMainApp();
+      setSyncStatus("Local Mode");
+      await refreshAllViews();
+      return;
+    }
+    await initializeFirebase();
+  }catch(error){
+    console.error(error);
+    alert("ডাটাবেস চালু করা যায়নি। ব্রাউজারের IndexedDB সুবিধা পরীক্ষা করুন।");
+  }
+}
+
+startApp();
+
+</script>
+</body>
+</html>
