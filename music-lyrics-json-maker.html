@@ -210,6 +210,16 @@ audio{width:100%;margin-top:12px}
   border:1px solid var(--border);
   border-radius:7px;
   margin-bottom:8px;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+.lyric-row.active-lyric{
+  background:#e5f5eb;
+  border:2px solid var(--green);
+  box-shadow:0 2px 8px #08783b1c;
+}
+.lyric-row.active-lyric .lyric-text{
+  color:var(--dark);
+  font-weight:bold;
 }
 .lyric-text{
   flex:1;
@@ -352,6 +362,27 @@ th{background:#edf4ef}
   .lyric-row{flex-wrap:wrap}
   .lyric-text{min-width:100%}
   .time{flex:1;text-align:left}
+}
+
+/* Fixed SUBMIT / UPDATE / RESET footer */
+#songForm > .actions:last-child{
+  position:fixed;
+  left:255px;
+  right:0;
+  bottom:0;
+  z-index:20;
+  margin:0;
+  padding:12px 22px;
+  background:#fff;
+  border-top:1px solid var(--border);
+  box-shadow:0 -3px 12px #0002;
+}
+#songForm{padding-bottom:82px}
+@media(max-width:750px){
+  #songForm > .actions:last-child{
+    left:0;
+    padding:12px 13px;
+  }
 }
 </style>
 </head>
@@ -1136,6 +1167,7 @@ function renderLyricsRows(){
   currentLines.forEach((item,index)=>{
     const row=document.createElement("div");
     row.className="lyric-row";
+    row.dataset.lyricIndex=index;
 
     const text=document.createElement("div");
     text.className="lyric-text";
@@ -1144,6 +1176,30 @@ function renderLyricsRows(){
     const time=document.createElement("div");
     time.className="time";
     time.textContent=formatTime(item.time);
+
+    const editButton=document.createElement("button");
+    editButton.className="time-btn";
+    editButton.type="button";
+    editButton.textContent="✏️";
+    editButton.title="টাইম এডিট করুন";
+    editButton.onclick=()=>{
+      const currentValue=item.time===null ? "00:00.000" : formatTime(item.time);
+      const entered=prompt("নতুন টাইম লিখুন (MM:SS.mmm):",currentValue);
+      if(entered===null)return;
+
+      const match=entered.trim().match(/^(\d+):([0-5]?\d)(?:\.(\d{1,3}))?$/);
+      if(!match){
+        alert("সঠিক ফরম্যাটে টাইম লিখুন। উদাহরণ: 00:12.231");
+        return;
+      }
+
+      const minutes=Number(match[1]);
+      const seconds=Number(match[2]);
+      const milliseconds=Number((match[3]||"0").padEnd(3,"0"));
+      item.time=(minutes*60000)+(seconds*1000)+milliseconds;
+      time.textContent=formatTime(item.time);
+      updateActiveLyricRow();
+    };
 
     const button=document.createElement("button");
     button.className="time-btn";
@@ -1166,12 +1222,46 @@ function renderLyricsRows(){
 
       item.time=Math.round(player.currentTime*1000);
       time.textContent=formatTime(item.time);
+      updateActiveLyricRow();
     };
 
-    row.append(text,time,button);
+    row.append(text,time,editButton,button);
     $("lyricsRows").appendChild(row);
   });
+
+  updateActiveLyricRow();
 }
+
+/* ==================================
+   LIVE PLAYING LINE HIGHLIGHT
+================================== */
+
+function updateActiveLyricRow(){
+  const player=$("audioPlayer");
+  const nowMs=Number.isFinite(player.currentTime)
+    ? Math.round(player.currentTime*1000)
+    : -1;
+
+  let activeIndex=-1;
+  let latestTime=-1;
+
+  currentLines.forEach((item,index)=>{
+    if(item.time!==null && item.time!==undefined &&
+       Number.isFinite(Number(item.time)) && Number(item.time)<=nowMs &&
+       Number(item.time)>=latestTime){
+      latestTime=Number(item.time);
+      activeIndex=index;
+    }
+  });
+
+  $("lyricsRows").querySelectorAll(".lyric-row").forEach((row,index)=>{
+    row.classList.toggle("active-lyric",index===activeIndex);
+  });
+}
+
+$("audioPlayer").addEventListener("timeupdate",updateActiveLyricRow);
+$("audioPlayer").addEventListener("seeked",updateActiveLyricRow);
+$("audioPlayer").addEventListener("loadedmetadata",updateActiveLyricRow);
 
 /* ==================================
    FORM SUBMIT
@@ -1249,6 +1339,7 @@ function resetForm(){
   clearAudioPreview();
 
   currentLines=[];
+  updateActiveLyricRow();
   audioBlob=null;
   editingSong=null;
   $("audioStatus").textContent="অডিও লিংক দিন অথবা অডিও ফাইল নির্বাচন করুন।";
