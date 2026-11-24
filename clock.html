@@ -1,0 +1,30 @@
+<style>
+  .clock {
+    font-size: 20px;
+    font-weight: bold;
+    color: red;
+    white-space: nowrap;
+}
+</style>
+
+  
+
+<div class="clock" id="clock">12:00 AM</div>
+
+<script>
+  function updateClock() {
+    const now = new Date();
+
+    const time = now.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+    });
+
+    document.getElementById("clock").textContent = time;
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+</script>
