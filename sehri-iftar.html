@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#071A36">
+<title>সেহরি ও ইফতার কাউন্টডাউন</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,"Noto Sans Bengali",sans-serif;
+  color:white;
+  background:
+    radial-gradient(circle at top,#173e70 0%,transparent 45%),
+    linear-gradient(145deg,#06152f,#001039 65%,#071b3b);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+.app{width:100%;max-width:850px;text-align:center}
+.header{margin-bottom:25px}
+.header h1{font-size:clamp(25px,5vw,38px);margin:0 0 8px}
+.header p{color:#b9cce7;margin:0;font-size:14px}
+.clock-box{
+  background:linear-gradient(135deg,#15365e,#102849);
+  border:1px solid #31547b;
+  border-radius:24px;
+  padding:25px 12px;
+  box-shadow:0 12px 35px #0005;
+  margin-bottom:20px;
+}
+.clock-label{color:#b9d6f5;font-size:17px}
+.clock{
+  font-size:clamp(38px,9vw,70px);
+  font-weight:bold;
+  letter-spacing:2px;
+  margin:10px 0;
+  font-variant-numeric:tabular-nums;
+}
+.ampm{font-size:.38em;color:#ffd66b;vertical-align:middle}
+.date{color:#b9d6f5;font-size:15px}
+.cards{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.card{
+  border-radius:22px;
+  padding:23px 12px;
+  min-width:0;
+  box-shadow:0 10px 28px #0004;
+}
+.sehri{background:linear-gradient(145deg,#164a68,#12334e)}
+.iftar{background:linear-gradient(145deg,#69451f,#402b19)}
+.card h2{font-size:25px;margin:0 0 12px}
+.event-time{font-size:clamp(27px,6vw,42px);font-weight:bold;margin:8px 0}
+.small{font-size:13px;color:#d5e4f5}
+.countdown{
+  font-size:clamp(22px,5vw,34px);
+  color:#ffda78;
+  font-weight:bold;
+  margin:10px 0;
+  font-variant-numeric:tabular-nums;
+}
+.status{font-size:13px;color:#d8e7f8;min-height:20px}
+.footer{
+  color:#9eb8d8;
+  font-size:12px;
+  margin-top:22px;
+  line-height:1.8;
+}
+.sound-status{margin-top:14px;font-size:13px;color:#b9d6f5}
+.alarm-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:10;
+  background:#000c;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.alarm-box{
+  width:100%;
+  max-width:420px;
+  background:linear-gradient(145deg,#183b63,#071a36);
+  border:1px solid #54749a;
+  border-radius:25px;
+  padding:30px 20px;
+  text-align:center;
+  box-shadow:0 15px 60px #0009;
+}
+.alarm-icon{font-size:55px}
+.alarm-box h2{margin:10px 0;font-size:27px}
+.alarm-box p{color:#d5e4f5}
+.alarm-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:25px}
+.alarm-buttons button{
+  border:0;border-radius:13px;padding:15px 8px;
+  font-size:16px;font-weight:bold;color:white;cursor:pointer;
+}
+.snooze{background:#21865b}
+.stop{background:#bd303b}
+@media(max-width:480px){
+  body{padding:12px}
+  .cards{gap:10px}
+  .card{padding:20px 7px;border-radius:17px}
+  .card h2{font-size:21px}
+  .clock-box{padding:22px 8px}
+  .alarm-buttons{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>🌙 সেহরি ও ইফতার</h1>
+    <p>লাইভ সময় • রিয়েল টাইম কাউন্টডাউন</p>
+  </div>
+
+  <div class="clock-box">
+    <div class="clock-label">বর্তমান সময়</div>
+    <div class="clock" id="liveClock">
+      --:--:-- <span class="ampm">AM</span>
+    </div>
+    <div class="date" id="liveDate">তারিখ</div>
+  </div>
+
+  <div class="cards">
+    <div class="card sehri">
+      <h2>🌙 সেহরি</h2>
+      <div class="small">সেহরি শেষের সময়</div>
+      <div class="event-time" id="sehriTime">--:--</div>
+      <div class="small">আর বাকি</div>
+      <div class="countdown" id="sehriCountdown">--:--:--</div>
+      <div class="status" id="sehriStatus"></div>
+    </div>
+
+    <div class="card iftar">
+      <h2>🌅 ইফতার</h2>
+      <div class="small">ইফতারের সময়</div>
+      <div class="event-time" id="iftarTime">--:--</div>
+      <div class="small">আর বাকি</div>
+      <div class="countdown" id="iftarCountdown">--:--:--</div>
+      <div class="status" id="iftarStatus"></div>
+    </div>
+  </div>
+
+  <div class="sound-status" id="soundStatus">
+    🔔 প্রথমবার স্ক্রিনে একবার স্পর্শ করুন, যাতে অ্যালার্মের শব্দ চালু হতে পারে।
+  </div>
+
+  <div class="footer">
+    নির্ধারিত সময়ে সেহরি ও ইফতারের আলাদা অ্যালার্ম বাজবে।<br>
+    তারিখ ও সময় আলাদা বছরের JS ফাইলে সংরক্ষিত থাকবে।
+  </div>
+</div>
+
+<!-- অ্যালার্ম স্ক্রিন -->
+<div class="alarm-overlay" id="alarmOverlay">
+  <div class="alarm-box">
+    <div class="alarm-icon">🔔</div>
+    <h2 id="alarmTitle">অ্যালার্ম বাজছে!</h2>
+    <p id="alarmMessage">নির্ধারিত সময় হয়েছে</p>
+
+    <div class="alarm-buttons">
+      <button class="snooze" onclick="snoozeAlarm()">১০ মিনিট পরে</button>
+      <button class="stop" onclick="stopAlarm()">বন্ধ করুন</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================================
+     বছরের সময়সূচির আলাদা JS ফাইল
+     সবগুলো একই ফোল্ডারে রাখবেন
+=================================== -->
+
+<script src="sehri-2026.js"></script>
+<script src="sehri-2027.js"></script>
+<script src="sehri-2028.js"></script>
+<script src="sehri-2029.js"></script>
+<script src="sehri-2030.js"></script>
+<script>
+
+/* সব বছরের সময়সূচি এখান থেকে নেওয়া হবে */
+const prayerTimes = window.prayerTimes || {};
+
+const $ = id => document.getElementById(id);
+
+function pad(n){
+  return String(n).padStart(2,"0");
+}
+
+function getDateKey(date){
+  return date.getFullYear()+"-"+pad(date.getMonth()+1)+"-"+pad(date.getDate());
+}
+
+function formatTime(time){
+  if(!time) return "--:--";
+
+  let [h,m] = time.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+
+  return pad(h)+":"+pad(m)+" "+ampm;
+}
+
+function updateClock(){
+  const now = new Date();
+
+  let h = now.getHours();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+
+  $("liveClock").innerHTML =
+    pad(h)+":"+pad(now.getMinutes())+":"+pad(now.getSeconds())+
+    ' <span class="ampm">'+ampm+'</span>';
+
+  const days = [
+    "রবিবার","সোমবার","মঙ্গলবার","বুধবার",
+    "বৃহস্পতিবার","শুক্রবার","শনিবার"
+  ];
+
+  const months = [
+    "জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল",
+    "মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর",
+    "অক্টোবর","নভেম্বর","ডিসেম্বর"
+  ];
+
+  $("liveDate").textContent =
+    days[now.getDay()]+" • "+
+    pad(now.getDate())+" "+months[now.getMonth()]+" "+now.getFullYear();
+}
+
+
+/* কাউন্টডাউন */
+
+function getTarget(dateKey,time){
+  if(!time) return null;
+
+  const [year,month,day] = dateKey.split("-").map(Number);
+  const [hour,minute] = time.split(":").map(Number);
+
+  return new Date(year,month-1,day,hour,minute,0,0);
+}
+
+function updateCountdown(elementId,statusId,time,now){
+  if(!time){
+    $(elementId).textContent = "--:--:--";
+    $(statusId).textContent = "এই তারিখের সময়সূচি পাওয়া যায়নি";
+    return;
+  }
+
+  const target = getTarget(getDateKey(now),time);
+  const diff = target - now;
+
+  if(diff <= 0){
+    $(elementId).textContent = "সময় হয়েছে";
+    $(statusId).textContent = "আজকের নির্ধারিত সময় শেষ";
+    return;
+  }
+
+  const totalSeconds = Math.floor(diff/1000);
+  const hours = Math.floor(totalSeconds/3600);
+  const minutes = Math.floor((totalSeconds%3600)/60);
+  const seconds = totalSeconds%60;
+
+  $(elementId).textContent =
+    pad(hours)+":"+pad(minutes)+":"+pad(seconds);
+
+  $(statusId).textContent = "সময় বাকি আছে";
+}
+
+
+/* অ্যালার্ম সিস্টেম */
+
+let audioContext = null;
+let alarmInterval = null;
+let activeAlarm = null;
+let snoozeData = null;
+let firedData = {};
+
+try{
+  firedData = JSON.parse(localStorage.getItem("sehriIftarFired") || "{}");
+  snoozeData = JSON.parse(localStorage.getItem("sehriIftarSnooze") || "null");
+}catch(e){
+  firedData = {};
+  snoozeData = null;
+}
+
+function unlockAudio(){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+    if(AudioCtx){
+      if(!audioContext) audioContext = new AudioCtx();
+
+      if(audioContext.state === "suspended"){
+        audioContext.resume();
+      }
+
+      $("soundStatus").textContent = "🔔 অ্যালার্ম সাউন্ড প্রস্তুত";
+    }
+  }catch(e){}
+}
+
+document.addEventListener("pointerdown",unlockAudio,{once:true});
+document.addEventListener("keydown",unlockAudio,{once:true});
+
+
+/* সেহরি ও ইফতারের আলাদা সুর */
+
+function playAlarmSound(type){
+  if(!audioContext || audioContext.state !== "running") return;
+
+  const now = audioContext.currentTime;
+
+  const notes = type === "sehri"
+    ? [880,660,880,660]
+    : [523,659,784,1046];
+
+  notes.forEach((frequency,index)=>{
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = "sine";
+    osc.frequency.value = frequency;
+
+    gain.gain.setValueAtTime(0.0001,now+index*0.45);
+    gain.gain.exponentialRampToValueAtTime(0.25,now+index*0.45+0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001,now+index*0.45+0.35);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now+index*0.45);
+    osc.stop(now+index*0.45+0.4);
+  });
+}
+
+function startAlarm(type){
+  if(activeAlarm) return;
+
+  activeAlarm = type;
+
+  $("alarmTitle").textContent =
+    type === "sehri" ? "🌙 সেহরির অ্যালার্ম!" : "🌅 ইফতারের অ্যালার্ম!";
+
+  $("alarmMessage").textContent =
+    type === "sehri"
+      ? "সেহরির নির্ধারিত সময় হয়েছে"
+      : "ইফতারের নির্ধারিত সময় হয়েছে";
+
+  $("alarmOverlay").style.display = "flex";
+
+  playAlarmSound(type);
+
+  alarmInterval = setInterval(()=>{
+    if(activeAlarm) playAlarmSound(activeAlarm);
+  },2000);
+}
+
+function stopAlarmSound(){
+  if(alarmInterval){
+    clearInterval(alarmInterval);
+    alarmInterval = null;
+  }
+}
+
+function stopAlarm(){
+  if(activeAlarm){
+    const key = getDateKey(new Date())+"_"+activeAlarm;
+    firedData[key] = true;
+    localStorage.setItem("sehriIftarFired",JSON.stringify(firedData));
+  }
+
+  stopAlarmSound();
+  activeAlarm = null;
+  snoozeData = null;
+
+  localStorage.removeItem("sehriIftarSnooze");
+  $("alarmOverlay").style.display = "none";
+}
+
+function snoozeAlarm(){
+  if(!activeAlarm) return;
+
+  snoozeData = {
+    type:activeAlarm,
+    until:Date.now()+10*60*1000
+  };
+
+  localStorage.setItem("sehriIftarSnooze",JSON.stringify(snoozeData));
+
+  stopAlarmSound();
+  activeAlarm = null;
+  $("alarmOverlay").style.display = "none";
+}
+
+
+/* নির্ধারিত সময়ে অ্যালার্ম পরীক্ষা */
+
+function checkAlarms(now){
+  const dateKey = getDateKey(now);
+  const today = prayerTimes[dateKey];
+
+  if(snoozeData && !activeAlarm){
+    if(Date.now() >= snoozeData.until){
+      const type = snoozeData.type;
+      snoozeData = null;
+      localStorage.removeItem("sehriIftarSnooze");
+      startAlarm(type);
+      return;
+    }
+  }
+
+  if(!today || activeAlarm) return;
+
+  const currentTime = pad(now.getHours())+":"+pad(now.getMinutes());
+
+  if(today.sehri === currentTime){
+    const key = dateKey+"_sehri";
+
+    if(!firedData[key]){
+      firedData[key] = true;
+      localStorage.setItem("sehriIftarFired",JSON.stringify(firedData));
+      startAlarm("sehri");
+      return;
+    }
+  }
+
+  if(today.iftar === currentTime){
+    const key = dateKey+"_iftar";
+
+    if(!firedData[key]){
+      firedData[key] = true;
+      localStorage.setItem("sehriIftarFired",JSON.stringify(firedData));
+      startAlarm("iftar");
+    }
+  }
+}
+
+
+/* মূল অ্যাপ আপডেট */
+
+function updateApp(){
+  const now = new Date();
+  const dateKey = getDateKey(now);
+  const today = prayerTimes[dateKey] || {};
+
+  updateClock();
+
+  $("sehriTime").textContent = formatTime(today.sehri);
+  $("iftarTime").textContent = formatTime(today.iftar);
+
+  updateCountdown(
+    "sehriCountdown","sehriStatus",today.sehri,now
+  );
+
+  updateCountdown(
+    "iftarCountdown","iftarStatus",today.iftar,now
+  );
+
+  checkAlarms(now);
+}
+
+updateApp();
+setInterval(updateApp,1000);
+
+</script>
+</body>
+</html>
